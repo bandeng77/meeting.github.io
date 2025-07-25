@@ -40,81 +40,72 @@
 
   <script>
     const calendarEl = document.getElementById("calendar");
-    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_j1v4nGsEKaAQ-9-iiD2QL_0jQDpAEfx1V_Ut_VSuOLLC1duTNGCXUSSGo96OIgZ2NRgxqjESNO4v/pub?gid=51674171&single=true&output=csv";
+    const API_KEY = "AIzaSyDz_Hv6QqtOLXbPCBIk6oWqKEuwbPcI24w";
+    const SHEET_ID = "1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c";
+    const SHEET_NAME = "Sheet1"; // ganti jika nama sheet kamu berbeda
     const scriptURL = "https://script.google.com/macros/s/AKfycbxfy7gzwULNT5ggLeKtlQ-LR5tcxhhDRY5QLypiKKSn5_iTqwlkgddup48p_1Rko80p/exec";
 
     let allEvents = [];
 
-    function parseCSV(data) {
-      const lines = data.split("\n").slice(1);
-      return lines
-        .map(line => line.split(","))
-        .filter(cols => cols.length >= 6)
-        .map(([ruang, status, pengguna, tanggal, mulai, selesai]) => ({
-          ruang: ruang.trim(),
-          status: status.trim().toLowerCase(),
-          pengguna: pengguna.trim(),
-          tanggal: tanggal.trim(),
-          mulai: mulai.trim(),
-          selesai: selesai.trim(),
-        }))
-        .filter(e => e.status === "digunakan");
-    }
+    async function loadData() {
+      const url = `https://sheets.googleapis.com/v4/spreadsheets/${SHEET_ID}/values/${SHEET_NAME}?key=${API_KEY}`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        const rows = data.values.slice(1); // skip header
+        allEvents = [];
 
-    function loadData() {
-      fetch(sheetURL)
-        .then(res => res.text())
-        .then(csv => {
-          const entries = parseCSV(csv);
-          const events = entries.map(e => ({
-            title: `${e.ruang} - ${e.pengguna}`,
-            start: `${e.tanggal}T${e.mulai}`,
-            end: `${e.tanggal}T${e.selesai}`,
-            color: "#4ade80",
-          }));
-
-          const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: "dayGridMonth",
-            locale: "id",
-            height: "auto",
-            headerToolbar: {
-              left: "prev,next today",
-              center: "title",
-              right: "dayGridMonth,timeGridWeek",
-            },
-            events,
-          });
-
-          calendar.render();
-          document.getElementById("lastUpdate").textContent = "Terakhir diperbarui: " + new Date().toLocaleString("id-ID");
-        })
-        .catch(err => {
-          calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
-          console.error("Gagal:", err);
+        rows.forEach(row => {
+          const [ruang, status, pengguna, tanggal, mulai, selesai] = row;
+          if (status && status.toLowerCase() === "digunakan") {
+            allEvents.push({
+              title: `${ruang} - ${pengguna}`,
+              start: `${tanggal}T${mulai}`,
+              end: `${tanggal}T${selesai}`
+            });
+          }
         });
+
+        const calendar = new FullCalendar.Calendar(calendarEl, {
+          initialView: "dayGridMonth",
+          locale: "id",
+          height: "auto",
+          headerToolbar: {
+            left: "prev,next today",
+            center: "title",
+            right: "dayGridMonth,timeGridWeek",
+          },
+          events: allEvents,
+        });
+
+        calendar.render();
+        document.getElementById("lastUpdate").textContent =
+          "Terakhir diperbarui: " + new Date().toLocaleString("id-ID");
+
+      } catch (error) {
+        calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
+        console.error("Gagal memuat data:", error);
+      }
     }
 
+    // Submit Booking
     document.getElementById("bookingForm").addEventListener("submit", function (e) {
       e.preventDefault();
       const formData = new FormData(this);
 
       fetch(scriptURL, {
         method: "POST",
-        body: formData,
+        body: formData
       })
         .then(res => res.text())
         .then(result => {
-          if (result.includes("SUCCESS")) {
-            alert("Booking berhasil disimpan!");
-            this.reset();
-            loadData(); // refresh kalender
-          } else {
-            alert("Gagal menyimpan booking: " + result);
-          }
+          alert("Booking berhasil disimpan!");
+          this.reset();
+          loadData();
         })
-        .catch(error => {
-          alert("Terjadi kesalahan saat mengirim!");
-          console.error(error);
+        .catch(err => {
+          alert("Gagal menyimpan booking.");
+          console.error(err);
         });
     });
 
