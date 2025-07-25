@@ -28,7 +28,8 @@
       const scheduleDiv = document.getElementById("schedule");
       const scheduleList = document.getElementById("scheduleList");
       const scheduleTitle = document.getElementById("scheduleTitle");
-      const sheetID = "1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c"; // Ganti dengan ID Sheet kamu
+
+      // ID Sheet kamu sudah dipakai langsung di sini
       const sheetURL = `https://docs.google.com/spreadsheets/d/1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c/gviz/tq?tqx=out:json`;
 
       let allEvents = [];
@@ -104,7 +105,7 @@
         })
         .catch(err => {
           calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
-          console.error(err);
+          console.error("Gagal ambil data:", err);
         });
     });
   </script>
