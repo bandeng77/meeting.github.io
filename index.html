@@ -9,78 +9,65 @@
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-  <div class="max-w-6xl mx-auto py-10 px-4">
+  <div class="max-w-5xl mx-auto py-10 px-4">
     <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Kalender & Booking Meeting</h1>
 
-    <!-- Alert -->
-    <div id="alert" class="text-red-600 mb-4 hidden">Gagal memuat kalender.</div>
-
-    <!-- Kalender -->
     <div id="calendar" class="bg-white rounded shadow p-4 mb-6"></div>
 
-    <!-- Jadwal per Tanggal -->
-    <div id="schedule" class="bg-white rounded shadow p-4 hidden">
-      <h2 class="text-xl font-semibold mb-4" id="scheduleTitle">Jadwal</h2>
-      <ul id="scheduleList" class="space-y-2 text-gray-700"></ul>
-    </div>
+    <form id="bookingForm" class="bg-white p-6 rounded shadow mb-6">
+      <h2 class="text-xl font-semibold mb-4">Form Booking Meeting</h2>
 
-    <!-- Form Booking -->
-    <div class="bg-white rounded shadow p-6 mt-10">
-      <h2 class="text-xl font-bold mb-4">Form Booking Meeting</h2>
-      <form id="bookingForm" class="space-y-4">
-        <input type="text" id="ruang" placeholder="Ruang" required class="w-full p-2 border rounded" />
-        <input type="text" id="pengguna" placeholder="Pengguna" required class="w-full p-2 border rounded" />
-        <input type="date" id="tanggal" required class="w-full p-2 border rounded" />
-        <input type="time" id="mulai" required class="w-full p-2 border rounded" />
-        <input type="time" id="selesai" required class="w-full p-2 border rounded" />
-        <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded">Booking Sekarang</button>
-      </form>
-    </div>
+      <label class="block mb-2">Ruang</label>
+      <input type="text" name="ruang" required class="w-full border p-2 rounded mb-4"/>
 
-    <p id="lastUpdate" class="text-xs text-center text-gray-500 mt-6"></p>
+      <label class="block mb-2">Pengguna</label>
+      <input type="text" name="pengguna" required class="w-full border p-2 rounded mb-4"/>
+
+      <label class="block mb-2">Tanggal</label>
+      <input type="date" name="tanggal" required class="w-full border p-2 rounded mb-4"/>
+
+      <label class="block mb-2">Mulai</label>
+      <input type="time" name="mulai" required class="w-full border p-2 rounded mb-4"/>
+
+      <label class="block mb-2">Selesai</label>
+      <input type="time" name="selesai" required class="w-full border p-2 rounded mb-4"/>
+
+      <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Booking Sekarang</button>
+    </form>
+
+    <p id="lastUpdate" class="text-sm text-center text-gray-500 mt-6"></p>
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", function () {
-      const calendarEl = document.getElementById("calendar");
-      const alertEl = document.getElementById("alert");
-      const scheduleDiv = document.getElementById("schedule");
-      const scheduleList = document.getElementById("scheduleList");
-      const scheduleTitle = document.getElementById("scheduleTitle");
+    const calendarEl = document.getElementById("calendar");
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_j1v4nGsEKaAQ-9-iiD2QL_0jQDpAEfx1V_Ut_VSuOLLC1duTNGCXUSSGo96OIgZ2NRgxqjESNO4v/pub?gid=51674171&single=true&output=tsv";
+    const scriptURL = "URL_WEB_APP_KAMU";
 
-      // Ganti dengan URL publik sheet kamu (GViz JSON format)
-      const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_j1v4nGsEKaAQ-9-iiD2QL_0jQDpAEfx1V_Ut_VSuOLLC1duTNGCXUSSGo96OIgZ2NRgxqjESNO4v/gviz/tq?tqx=out:json";
+    let allEvents = [];
 
-      let allEvents = [];
-
+    function loadData() {
       fetch(sheetURL)
         .then(res => res.text())
         .then(data => {
-          const json = JSON.parse(data.substr(47).slice(0, -2));
-          const rows = json.table.rows;
+          const lines = data.split("\n").slice(1); // Skip header
+          allEvents = [];
 
-          rows.forEach(row => {
-            const ruang = row.c[0]?.v || "";
-            const status = row.c[1]?.v || "";
-            const pengguna = row.c[2]?.v || "";
-            const tanggal = row.c[3]?.v || "";
-            const mulai = row.c[4]?.v || "00:00";
-            const selesai = row.c[5]?.v || "23:59";
+          for (let line of lines) {
+            const [ruang, status, pengguna, tanggal, mulai, selesai] = line.split("\t");
 
-            if (tanggal && status.toLowerCase() !== "tersedia") {
+            if (tanggal && status.trim().toLowerCase() === "digunakan") {
               allEvents.push({
                 title: `${ruang} - ${pengguna}`,
-                ruang,
-                pengguna,
-                status,
                 start: `${tanggal}T${mulai}`,
                 end: `${tanggal}T${selesai}`,
+                ruang,
+                pengguna,
                 date: tanggal,
                 mulai,
-                selesai
+                selesai,
               });
             }
-          });
+          }
 
           const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: "dayGridMonth",
@@ -95,51 +82,46 @@
               title: e.title,
               start: e.start,
               end: e.end,
-              color: e.status.toLowerCase() === "digunakan" ? "#f87171" : "#facc15",
+              color: "#4ade80"
             })),
-            dateClick: function (info) {
-              const selectedDate = info.dateStr;
-              const matched = allEvents.filter(e => e.date === selectedDate);
-
-              if (matched.length > 0) {
-                scheduleTitle.innerText = `Jadwal untuk ${new Date(selectedDate).toLocaleDateString("id-ID")}`;
-                scheduleList.innerHTML = matched.map(e => `
-                  <li class="border-l-4 pl-4 border-blue-500">
-                    <strong>${e.ruang}</strong> - ${e.pengguna} (${e.mulai} - ${e.selesai})
-                  </li>
-                `).join("");
-                scheduleDiv.classList.remove("hidden");
-              } else {
-                scheduleTitle.innerText = `Tidak ada jadwal untuk ${new Date(selectedDate).toLocaleDateString("id-ID")}`;
-                scheduleList.innerHTML = `<li class="text-gray-500">Semua ruang tersedia.</li>`;
-                scheduleDiv.classList.remove("hidden");
-              }
-            }
           });
 
           calendar.render();
           document.getElementById("lastUpdate").textContent = "Terakhir diperbarui: " + new Date().toLocaleString("id-ID");
         })
         .catch(err => {
+          calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
           console.error(err);
-          alertEl.classList.remove("hidden");
         });
+    }
 
-      // Form booking (sementara hanya alert, belum kirim ke sheet)
-      document.getElementById("bookingForm").addEventListener("submit", function (e) {
-        e.preventDefault();
-        const ruang = document.getElementById("ruang").value;
-        const pengguna = document.getElementById("pengguna").value;
-        const tanggal = document.getElementById("tanggal").value;
-        const mulai = document.getElementById("mulai").value;
-        const selesai = document.getElementById("selesai").value;
+    // Booking Form Submit
+    document.getElementById("bookingForm").addEventListener("submit", function (e) {
+      e.preventDefault();
+      const formData = new FormData(this);
 
-        alert(`Booking terkirim!\nRuang: ${ruang}\nPengguna: ${pengguna}\nTanggal: ${tanggal}\n${mulai} - ${selesai}`);
-
-        // Reset form
-        this.reset();
-      });
+      fetch(scriptURL, {
+        method: "POST",
+        body: formData,
+      })
+        .then(res => res.text())
+        .then(result => {
+          if (result.includes("SUCCESS")) {
+            alert("Booking berhasil disimpan!");
+            this.reset();
+            loadData(); // refresh kalender
+          } else {
+            alert("Gagal menyimpan booking: " + result);
+          }
+        })
+        .catch(error => {
+          alert("Terjadi kesalahan saat mengirim!");
+          console.error(error);
+        });
     });
+
+    // Load kalender saat halaman dibuka
+    loadData();
   </script>
 </body>
 </html>
