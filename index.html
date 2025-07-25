@@ -40,34 +40,38 @@
 
   <script>
     const calendarEl = document.getElementById("calendar");
-    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_j1v4nGsEKaAQ-9-iiD2QL_0jQDpAEfx1V_Ut_VSuOLLC1duTNGCXUSSGo96OIgZ2NRgxqjESNO4v/pub?gid=51674171&single=true&output=tsv";
-    const scriptURL = "URL_WEB_APP_KAMU";
+    const sheetURL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQ_j1v4nGsEKaAQ-9-iiD2QL_0jQDpAEfx1V_Ut_VSuOLLC1duTNGCXUSSGo96OIgZ2NRgxqjESNO4v/pub?gid=51674171&single=true&output=csv";
+    const scriptURL = "https://script.google.com/macros/s/AKfycbxfy7gzwULNT5ggLeKtlQ-LR5tcxhhDRY5QLypiKKSn5_iTqwlkgddup48p_1Rko80p/exec";
 
     let allEvents = [];
+
+    function parseCSV(data) {
+      const lines = data.split("\n").slice(1);
+      return lines
+        .map(line => line.split(","))
+        .filter(cols => cols.length >= 6)
+        .map(([ruang, status, pengguna, tanggal, mulai, selesai]) => ({
+          ruang: ruang.trim(),
+          status: status.trim().toLowerCase(),
+          pengguna: pengguna.trim(),
+          tanggal: tanggal.trim(),
+          mulai: mulai.trim(),
+          selesai: selesai.trim(),
+        }))
+        .filter(e => e.status === "digunakan");
+    }
 
     function loadData() {
       fetch(sheetURL)
         .then(res => res.text())
-        .then(data => {
-          const lines = data.split("\n").slice(1); // Skip header
-          allEvents = [];
-
-          for (let line of lines) {
-            const [ruang, status, pengguna, tanggal, mulai, selesai] = line.split("\t");
-
-            if (tanggal && status.trim().toLowerCase() === "digunakan") {
-              allEvents.push({
-                title: `${ruang} - ${pengguna}`,
-                start: `${tanggal}T${mulai}`,
-                end: `${tanggal}T${selesai}`,
-                ruang,
-                pengguna,
-                date: tanggal,
-                mulai,
-                selesai,
-              });
-            }
-          }
+        .then(csv => {
+          const entries = parseCSV(csv);
+          const events = entries.map(e => ({
+            title: `${e.ruang} - ${e.pengguna}`,
+            start: `${e.tanggal}T${e.mulai}`,
+            end: `${e.tanggal}T${e.selesai}`,
+            color: "#4ade80",
+          }));
 
           const calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: "dayGridMonth",
@@ -78,12 +82,7 @@
               center: "title",
               right: "dayGridMonth,timeGridWeek",
             },
-            events: allEvents.map(e => ({
-              title: e.title,
-              start: e.start,
-              end: e.end,
-              color: "#4ade80"
-            })),
+            events,
           });
 
           calendar.render();
@@ -91,11 +90,10 @@
         })
         .catch(err => {
           calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
-          console.error(err);
+          console.error("Gagal:", err);
         });
     }
 
-    // Booking Form Submit
     document.getElementById("bookingForm").addEventListener("submit", function (e) {
       e.preventDefault();
       const formData = new FormData(this);
@@ -120,7 +118,6 @@
         });
     });
 
-    // Load kalender saat halaman dibuka
     loadData();
   </script>
 </body>
