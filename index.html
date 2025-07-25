@@ -1,75 +1,112 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Dashboard Ruang Meeting</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Kalender Jadwal Meeting</title>
+  <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans">
-  <div class="max-w-5xl mx-auto py-10 px-4">
-    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Dashboard Penggunaan Ruang Meeting</h1>
+  <div class="max-w-6xl mx-auto py-10 px-4">
+    <h1 class="text-3xl font-bold mb-6 text-center text-gray-800">Kalender Jadwal Ruang Meeting</h1>
 
-    <div id="tableContainer" class="overflow-x-auto bg-white rounded-lg shadow">
-      <table class="min-w-full table-auto text-sm" id="meetingTable">
-        <thead class="bg-gray-200 text-gray-600 uppercase text-xs leading-normal">
-          <tr>
-            <th class="py-3 px-6 text-left">Ruang</th>
-            <th class="py-3 px-6 text-left">Status</th>
-            <th class="py-3 px-6 text-left">Pengguna</th>
-            <th class="py-3 px-6 text-left">Waktu</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody" class="text-gray-700 divide-y divide-gray-200">
-          <tr><td colspan="4" class="text-center py-4">Memuat data...</td></tr>
-        </tbody>
-      </table>
+    <div id="calendar" class="bg-white rounded shadow p-4 mb-6"></div>
+
+    <div id="schedule" class="bg-white rounded shadow p-4 hidden">
+      <h2 class="text-xl font-semibold mb-4" id="scheduleTitle">Jadwal</h2>
+      <ul id="scheduleList" class="space-y-2 text-gray-700"></ul>
     </div>
 
     <p id="lastUpdate" class="text-xs text-center text-gray-500 mt-6"></p>
   </div>
 
   <script>
-    const sheetID = "1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c"; // Ganti dengan ID Google Sheets kamu
-    const sheetURL = `https://docs.google.com/spreadsheets/d/1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c/gviz/tq?tqx=out:json`;
+    document.addEventListener("DOMContentLoaded", function () {
+      const calendarEl = document.getElementById("calendar");
+      const scheduleDiv = document.getElementById("schedule");
+      const scheduleList = document.getElementById("scheduleList");
+      const scheduleTitle = document.getElementById("scheduleTitle");
+      const sheetID = "1YWa05qOIiiaefYJ0NScm7Vnnixl7IhDUfGqy6Nry-6c"; // Ganti dengan ID Sheet kamu
+      const sheetURL = `https://docs.google.com/spreadsheets/d/${sheetID}/gviz/tq?tqx=out:json`;
 
-    fetch(sheetURL)
-      .then(res => res.text())
-      .then(data => {
-        const json = JSON.parse(data.substr(47).slice(0, -2));
-        const rows = json.table.rows;
-        const tbody = document.getElementById("tableBody");
-        tbody.innerHTML = ""; // Kosongkan isi awal
+      let allEvents = [];
 
-        rows.forEach(row => {
-          const ruang = row.c[0]?.v || "-";
-          const status = row.c[1]?.v || "-";
-          const pengguna = row.c[2]?.v || "-";
-          const waktu = row.c[3]?.v || "-";
+      fetch(sheetURL)
+        .then(res => res.text())
+        .then(data => {
+          const json = JSON.parse(data.substr(47).slice(0, -2));
+          const rows = json.table.rows;
 
-          let statusColor = "bg-gray-200 text-gray-800";
-          if (status.toLowerCase() === "tersedia") statusColor = "bg-green-200 text-green-800";
-          else if (status.toLowerCase() === "digunakan") statusColor = "bg-red-200 text-red-800";
-          else if (status.toLowerCase().includes("segera")) statusColor = "bg-yellow-200 text-yellow-800";
+          rows.forEach(row => {
+            const ruang = row.c[0]?.v || "";
+            const status = row.c[1]?.v || "";
+            const pengguna = row.c[2]?.v || "";
+            const tanggal = row.c[3]?.v || "";
+            const mulai = row.c[4]?.v || "00:00";
+            const selesai = row.c[5]?.v || "23:59";
 
-          const rowHTML = `
-            <tr>
-              <td class="py-3 px-6">${ruang}</td>
-              <td class="py-3 px-6"><span class="${statusColor} py-1 px-3 rounded-full text-xs">${status}</span></td>
-              <td class="py-3 px-6">${pengguna}</td>
-              <td class="py-3 px-6">${waktu}</td>
-            </tr>
-          `;
-          tbody.innerHTML += rowHTML;
+            if (tanggal && status.toLowerCase() !== "tersedia") {
+              allEvents.push({
+                title: `${ruang} - ${pengguna}`,
+                ruang,
+                pengguna,
+                status,
+                start: `${tanggal}T${mulai}`,
+                end: `${tanggal}T${selesai}`,
+                date: tanggal,
+                mulai,
+                selesai
+              });
+            }
+          });
+
+          const calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: "dayGridMonth",
+            locale: "id",
+            height: "auto",
+            headerToolbar: {
+              left: "prev,next today",
+              center: "title",
+              right: "dayGridMonth,timeGridWeek",
+            },
+            events: allEvents.map(e => ({
+              title: e.title,
+              start: e.start,
+              end: e.end,
+              color: e.status.toLowerCase() === "digunakan" ? "#f87171" : "#facc15",
+            })),
+            dateClick: function (info) {
+              const selectedDate = info.dateStr;
+              const matched = allEvents.filter(e => e.date === selectedDate);
+
+              if (matched.length > 0) {
+                scheduleTitle.innerText = `Jadwal untuk ${new Date(selectedDate).toLocaleDateString("id-ID")}`;
+                scheduleList.innerHTML = matched.map(e => `
+                  <li class="border-l-4 pl-4 border-blue-500">
+                    <strong>${e.ruang}</strong> - ${e.pengguna} (${e.mulai} - ${e.selesai})
+                  </li>
+                `).join("");
+                scheduleDiv.classList.remove("hidden");
+              } else {
+                scheduleTitle.innerText = `Tidak ada jadwal untuk ${new Date(selectedDate).toLocaleDateString("id-ID")}`;
+                scheduleList.innerHTML = `<li class="text-gray-500">Semua ruang tersedia.</li>`;
+                scheduleDiv.classList.remove("hidden");
+              }
+            }
+          });
+
+          calendar.render();
+
+          const now = new Date();
+          document.getElementById("lastUpdate").textContent = "Terakhir diperbarui: " + now.toLocaleString("id-ID");
+        })
+        .catch(err => {
+          calendarEl.innerHTML = "<p class='text-red-600'>Gagal memuat kalender.</p>";
+          console.error(err);
         });
-
-        const now = new Date();
-        document.getElementById("lastUpdate").textContent = "Terakhir diperbarui: " + now.toLocaleString("id-ID");
-      })
-      .catch(err => {
-        document.getElementById("tableBody").innerHTML = `<tr><td colspan="4" class="text-center py-4 text-red-600">Gagal memuat data.</td></tr>`;
-        console.error(err);
-      });
+    });
   </script>
 </body>
 </html>
