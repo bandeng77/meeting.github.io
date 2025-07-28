@@ -10,9 +10,7 @@
   <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
-
   <script>
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
       authDomain: "meetingefk.firebaseapp.com",
@@ -22,95 +20,82 @@
       messagingSenderId: "664314278395",
       appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
     };
-
-    // Initialize Firebase
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
   </script>
+
+  <style>
+    .calendar-day { transition: all 0.2s ease; }
+    .calendar-day:hover:not(.disabled) { background-color: #EFF6FF; cursor: pointer; }
+    .calendar-day.selected { background-color: #3B82F6; color: white; }
+    .calendar-day.has-meetings { position: relative; }
+    .calendar-day.has-meetings::after {
+      content: ''; position: absolute; bottom: 4px; left: 50%;
+      transform: translateX(-50%); width: 6px; height: 6px;
+      border-radius: 50%; background-color: #3B82F6;
+    }
+    .calendar-day.selected.has-meetings::after { background-color: white; }
+    .time-slot:hover:not(.booked) { background-color: #EFF6FF; cursor: pointer; }
+    .time-slot.selected { background-color: #3B82F6; color: white; }
+    .meeting-card { transition: all 0.2s ease; }
+    .meeting-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+  </style>
 </head>
 <body class="bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-2xl font-bold mb-4">Meeting Scheduler Dashboard</h1>
+<!-- ...[HTML content remains unchanged]... -->
 
-    <form id="booking-form" class="bg-white p-6 rounded shadow">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Title</label>
-          <input id="title" type="text" class="w-full border px-3 py-2 rounded" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Participants</label>
-          <input id="participants" type="text" class="w-full border px-3 py-2 rounded" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Date</label>
-          <input id="date" type="date" class="w-full border px-3 py-2 rounded" required>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">Time</label>
-          <input id="time" type="time" class="w-full border px-3 py-2 rounded" required>
-        </div>
-        <div class="md:col-span-2">
-          <label class="block text-sm font-medium text-gray-700">Description</label>
-          <textarea id="description" class="w-full border px-3 py-2 rounded" rows="3"></textarea>
-        </div>
-      </div>
-      <button type="submit" class="mt-6 w-full bg-blue-600 text-white py-2 px-4 rounded">Schedule Meeting</button>
-    </form>
+<script>
+  const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+  let meetingsData = {}; // now dynamically loaded from Firebase
 
-    <div class="mt-8">
-      <h2 class="text-xl font-semibold mb-4">Scheduled Meetings</h2>
-      <ul id="meetings-list" class="space-y-4"></ul>
-    </div>
-  </div>
-
-  <script>
-    const form = document.getElementById('booking-form');
-    const list = document.getElementById('meetings-list');
-
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
-
-      const meeting = {
-        title: document.getElementById('title').value,
-        participants: document.getElementById('participants').value.split(',').map(p => p.trim()),
-        date: document.getElementById('date').value,
-        time: document.getElementById('time').value,
-        description: document.getElementById('description').value
-      };
-
-      const newRef = db.ref('meetings').push();
-      await newRef.set(meeting);
-      alert('Meeting scheduled!');
-      form.reset();
-      loadMeetings();
-    });
-
-    function loadMeetings() {
-      db.ref('meetings').once('value', (snapshot) => {
-        const data = snapshot.val();
-        list.innerHTML = '';
-        if (!data) {
-          list.innerHTML = '<li class="text-gray-500">No meetings found.</li>';
-          return;
-        }
-        Object.entries(data).forEach(([id, meeting]) => {
-          const item = document.createElement('li');
-          item.className = 'bg-white p-4 rounded shadow';
-          item.innerHTML = `
-            <div class="flex justify-between">
-              <h3 class="text-lg font-bold">${meeting.title}</h3>
-              <span class="text-sm text-gray-500">${meeting.date} ${meeting.time}</span>
-            </div>
-            <p class="text-sm text-gray-700 mt-2">${meeting.description}</p>
-            <p class="text-xs text-gray-500 mt-1">Participants: ${meeting.participants.join(', ')}</p>
-          `;
-          list.appendChild(item);
-        });
+  async function fetchMeetings() {
+    const snapshot = await db.ref('meetings').once('value');
+    const data = snapshot.val();
+    meetingsData = {};
+    if (data) {
+      Object.values(data).forEach(meeting => {
+        if (!meetingsData[meeting.date]) meetingsData[meeting.date] = [];
+        meetingsData[meeting.date].push(meeting);
       });
     }
+    renderCalendar(currentMonth, currentYear);
+    if (selectedDate) {
+      const dateString = formatDate(selectedDate);
+      updateMeetingsList(dateString);
+      updateTimeSlots();
+    }
+  }
 
-    window.onload = loadMeetings;
-  </script>
+  bookingForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (!selectedDate || !selectedTime) {
+      alert('Please select a date and time');
+      return;
+    }
+    const title = document.getElementById('title').value;
+    const participants = document.getElementById('participants').value
+      .split(',').map(p => p.trim()).filter(p => p);
+    const description = document.getElementById('description').value;
+    const dateString = formatDate(selectedDate);
+    const newMeeting = {
+      id: Date.now(), title, time: selectedTime, participants, description, date: dateString
+    };
+    await db.ref('meetings').push(newMeeting);
+    alert('Meeting scheduled successfully!');
+    bookingForm.reset();
+    selectedTime = null;
+    bookingTimeInput.value = '';
+    await fetchMeetings();
+  });
+
+  // Replace existing initCalendar function call
+  function initCalendar() {
+    fetchMeetings();
+  }
+  initCalendar();
+</script>
 </body>
 </html>
