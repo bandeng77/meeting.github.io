@@ -5,25 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Meeting Scheduler Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
-  <!-- Firebase SDK -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
   <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
-      authDomain: "meetingefk.firebaseapp.com",
-      databaseURL: "https://meetingefk-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "meetingefk",
-      storageBucket: "meetingefk.firebasestorage.app",
-      messagingSenderId: "664314278395",
-      appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-  </script>
-
   <style>
     .calendar-day {
       transition: all 0.2s ease;
@@ -69,23 +53,38 @@
       box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
   </style>
-</head>
-<body class="bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-8">
-      <!-- Sidebar Kiri: Kalender -->
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
+      authDomain: "meetingefk.firebaseapp.com",
+      databaseURL: "https://meetingefk-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "meetingefk",
+      storageBucket: "meetingefk.firebasestorage.app",
+      messagingSenderId: "664314278395",
+      appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db
+      <!-- Sidebar Kiri (Kalender dan Time Slot) -->
       <div class="w-full lg:w-2/5 bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="p-6">
-          <!-- Logo & Identitas -->
-          <div class="flex items-center space-x-3 mb-4">
-            <img src="genetek-logo.png" alt="Genetek Logo" class="h-12 w-auto" />
+        <div class="p-6 sticky top-4 max-h-[calc(100vh-2rem)] overflow-y-auto">
+          <!-- Header Kalender -->
+          <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold text-gray-800">Meeting Scheduler</h1>
+            <div class="flex items-center space-x-2">
+              <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100">
+                <i class="fas fa-chevron-left text-gray-600"></i>
+              </button>
+              <button id="next-month" class="p-2 rounded-full hover:bg-gray-100">
+                <i class="fas fa-chevron-right text-gray-600"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Dropdown Bulan & Tahun -->
-          <div class="flex items-center space-x-2 mb-6">
-            <select id="month-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
-            <select id="year-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
+          <!-- Dropdown Bulan dan Tahun -->
+          <div class="flex justify-between gap-2 mb-4">
+            <select id="month-select" class="w-1/2 border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
+            <select id="year-select" class="w-1/2 border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
           </div>
 
           <!-- Header Hari -->
@@ -99,9 +98,9 @@
             <div class="text-center text-sm font-medium text-gray-500">Sat</div>
           </div>
 
-          <!-- Grid Tanggal -->
+          <!-- Grid Kalender -->
           <div id="calendar-grid" class="grid grid-cols-7 gap-1">
-            <!-- Hari-hari akan di-generate oleh JavaScript -->
+            <!-- Days will be injected by JavaScript -->
           </div>
 
           <!-- Tanggal Terpilih -->
@@ -114,21 +113,19 @@
           <div id="time-slots" class="mt-6">
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Available Time Slots</h3>
             <div class="grid grid-cols-3 gap-2">
-              <!-- Akan digenerate dengan JS -->
+              <!-- Waktu akan di-render dengan JavaScript -->
             </div>
           </div>
         </div>
       </div>
-      <!-- Sidebar Kanan: Meeting List dan Booking Form -->
+      <!-- Sidebar Kanan -->
       <div class="w-full lg:w-3/5 space-y-6">
         <!-- Daftar Meeting -->
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
-          <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">
-              Meetings on <span id="meetings-date">Selected Date</span>
-            </h2>
+          <div class="p-6 overflow-x-auto">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Meetings on <span id="meetings-date">Selected Date</span></h2>
             <div id="meetings-list" class="space-y-3">
-              <!-- Jika belum ada meeting -->
+              <!-- Placeholder bila belum ada meeting -->
               <div class="text-center py-8 text-gray-500">
                 <p>No meetings scheduled yet</p>
                 <p class="text-sm mt-2">Select a date to view or schedule meetings</p>
@@ -137,7 +134,7 @@
           </div>
         </div>
 
-        <!-- Form Booking -->
+        <!-- Form Penjadwalan -->
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
           <div class="p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Schedule New Meeting</h2>
@@ -145,36 +142,45 @@
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
-                  <input type="text" id="title" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input type="text" id="title" name="title" required
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 </div>
                 <div>
                   <label for="participants" class="block text-sm font-medium text-gray-700 mb-1">Participants</label>
-                  <input type="text" id="participants" name="participants" placeholder="Emails, comma separated" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input type="text" id="participants" name="participants" placeholder="Emails, comma separated"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 </div>
                 <div>
                   <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="text" id="date" name="date" readonly class="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input type="text" id="date" name="date" readonly
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 </div>
                 <div>
                   <label for="time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                  <input type="text" id="time" name="time" readonly class="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                  <input type="text" id="time" name="time" readonly
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
                 </div>
                 <div class="md:col-span-2">
                   <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                  <textarea id="description" name="description" rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                 </div>
               </div>
-              <button type="submit" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-150 ease-in-out">
+              <button type="submit"
+                class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-150 ease-in-out">
                 Schedule Meeting
               </button>
             </form>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
+      </div> <!-- End Sidebar Kanan -->
+    </div> <!-- End Flex -->
+  </div> <!-- End Container -->
   <script>
-    // Variabel global
+    const monthSelect = document.getElementById("month-select");
+    const yearSelect = document.getElementById("year-select");
+
+    const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
     let currentMonth = new Date().getMonth();
     let currentYear = new Date().getFullYear();
     let selectedDate = null;
@@ -188,10 +194,8 @@
     const bookingForm = document.getElementById('booking-form');
     const bookingDateInput = document.getElementById('date');
     const bookingTimeInput = document.getElementById('time');
-    const monthSelect = document.getElementById('month-select');
-    const yearSelect = document.getElementById('year-select');
-
-    const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+    const prevMonthBtn = document.getElementById('prev-month');
+    const nextMonthBtn = document.getElementById('next-month');
 
     function formatDate(date) {
       const year = date.getFullYear();
@@ -200,94 +204,101 @@
       return `${year}-${month}-${day}`;
     }
 
-    function createDayElement(day, isDisabled, hasMeetings = false, isSelected = false, isToday = false) {
-      const dayElement = document.createElement('div');
-      dayElement.className = 'calendar-day py-2 text-center rounded-md';
-      if (isDisabled) {
-        dayElement.classList.add('text-gray-300', 'disabled');
-      } else {
-        dayElement.classList.add('text-gray-800');
-        if (isToday) dayElement.classList.add('font-bold', 'border', 'border-blue-500');
-        if (hasMeetings) dayElement.classList.add('has-meetings');
-        if (isSelected) dayElement.classList.add('selected', 'text-white');
-        dayElement.addEventListener('click', () => {
-          const date = new Date(currentYear, currentMonth, day);
-          selectDate(date, formatDate(date));
-        });
+    function populateDropdowns() {
+      const months = Array.from({ length: 12 }, (_, i) =>
+        new Date(0, i).toLocaleString('default', { month: 'long' })
+      );
+      months.forEach((month, index) => {
+        const opt = document.createElement('option');
+        opt.value = index;
+        opt.textContent = month;
+        monthSelect.appendChild(opt);
+      });
+
+      const thisYear = new Date().getFullYear();
+      for (let y = thisYear; y <= thisYear + 1; y++) {
+        const opt = document.createElement('option');
+        opt.value = y;
+        opt.textContent = y;
+        yearSelect.appendChild(opt);
       }
-      dayElement.textContent = day;
-      return dayElement;
+
+      monthSelect.value = currentMonth;
+      yearSelect.value = currentYear;
+    }
+
+    function createDayElement(day, isDisabled, hasMeetings = false, isSelected = false, isToday = false) {
+      const el = document.createElement('div');
+      el.className = 'calendar-day py-2 text-center rounded-md';
+      el.textContent = day;
+      if (isDisabled) {
+        el.classList.add('text-gray-300', 'disabled');
+      } else {
+        el.classList.add('text-gray-800');
+        if (isToday) el.classList.add('font-bold', 'border', 'border-blue-500');
+        if (hasMeetings) el.classList.add('has-meetings');
+        if (isSelected) el.classList.add('selected', 'text-white');
+      }
+      return el;
     }
 
     function renderCalendar(month, year) {
       calendarGrid.innerHTML = '';
-      const firstDay = new Date(year, month, 1);
+      const firstDay = new Date(year, month, 1).getDay();
       const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startDay = firstDay.getDay();
 
       const prevMonthDays = new Date(year, month, 0).getDate();
-      for (let i = 0; i < startDay; i++) {
-        calendarGrid.appendChild(createDayElement(prevMonthDays - startDay + i + 1, true));
+      for (let i = 0; i < firstDay; i++) {
+        const day = createDayElement(prevMonthDays - firstDay + i + 1, true);
+        calendarGrid.appendChild(day);
       }
 
       for (let i = 1; i <= daysInMonth; i++) {
         const date = new Date(year, month, i);
         const dateString = formatDate(date);
-        const hasMeetings = meetingsData[dateString]?.length > 0;
+        const hasMeetings = meetingsData[dateString];
         const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
         const isToday = date.toDateString() === new Date().toDateString();
-        calendarGrid.appendChild(createDayElement(i, false, hasMeetings, isSelected, isToday));
+        const el = createDayElement(i, false, hasMeetings, isSelected, isToday);
+        el.addEventListener('click', () => selectDate(date, dateString));
+        calendarGrid.appendChild(el);
       }
 
-      const totalCells = startDay + daysInMonth;
-      const extra = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-      for (let i = 1; i <= extra; i++) {
-        calendarGrid.appendChild(createDayElement(i, true));
+      const totalCells = firstDay + daysInMonth;
+      const nextCells = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
+      for (let i = 1; i <= nextCells; i++) {
+        const day = createDayElement(i, true);
+        calendarGrid.appendChild(day);
       }
     }
 
-    function updateTimeSlots() {
-      const container = document.querySelector('#time-slots .grid');
-      container.innerHTML = '';
-      if (!selectedDate) return;
-
-      const dateStr = formatDate(selectedDate);
-      const bookedTimes = meetingsData[dateStr]?.map(m => m.time) || [];
-
-      availableTimes.forEach(time => {
-        const slot = document.createElement('div');
-        const isBooked = bookedTimes.includes(time);
-        slot.className = `time-slot py-2 px-3 text-center rounded-md border ${isBooked ? 'bg-gray-100 text-gray-400 border-gray-200 booked' : 'border-gray-200'}`;
-        slot.textContent = time;
-        if (!isBooked) {
-          if (selectedTime === time) {
-            slot.classList.add('selected', 'text-white', 'border-blue-500');
-          }
-          slot.addEventListener('click', () => {
-            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected', 'text-white', 'border-blue-500'));
-            slot.classList.add('selected', 'text-white', 'border-blue-500');
-            selectedTime = time;
-            bookingTimeInput.value = time;
-          });
-        }
-        container.appendChild(slot);
-      });
+    function selectDate(date, dateString) {
+      selectedDate = date;
+      selectedTime = null;
+      selectedDateDisplay.textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      meetingsDateDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+      bookingDateInput.value = dateString;
+      bookingTimeInput.value = '';
+      renderCalendar(currentMonth, currentYear);
+      updateMeetingsList(dateString);
+      updateTimeSlots();
     }
 
     function updateMeetingsList(dateString) {
       meetingsList.innerHTML = '';
-      if (!meetingsData[dateString] || meetingsData[dateString].length === 0) {
-        meetingsList.innerHTML = `<div class="text-center py-8 text-gray-500">
-          <p>No meetings scheduled for this date</p>
-          <p class="text-sm mt-2">Select a time slot below to schedule a meeting</p>
-        </div>`;
+      const meetings = meetingsData[dateString] || [];
+      if (meetings.length === 0) {
+        meetingsList.innerHTML = `
+          <div class="text-center py-8 text-gray-500">
+            <p>No meetings scheduled for this date</p>
+            <p class="text-sm mt-2">Select a time slot below to schedule a meeting</p>
+          </div>`;
         return;
       }
-
-      meetingsData[dateString].forEach(meeting => {
-        const el = document.createElement('div');
-        el.className = 'meeting-card p-4 border border-gray-200 rounded-lg';
-        el.innerHTML = `
+      meetings.forEach(meeting => {
+        const card = document.createElement('div');
+        card.className = 'meeting-card p-4 border border-gray-200 rounded-lg';
+        card.innerHTML = `
           <div class="flex justify-between items-start">
             <div>
               <h3 class="font-semibold text-gray-800">${meeting.title}</h3>
@@ -300,20 +311,36 @@
             <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</h4>
             <p class="text-xs mt-1">${meeting.participants.join(', ')}</p>
           </div>`;
-        meetingsList.appendChild(el);
+        meetingsList.appendChild(card);
       });
     }
 
-    function selectDate(date, dateStr) {
-      selectedDate = date;
-      selectedTime = null;
-      selectedDateDisplay.textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      meetingsDateDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      bookingDateInput.value = dateStr;
-      bookingTimeInput.value = '';
-      renderCalendar(currentMonth, currentYear);
-      updateMeetingsList(dateStr);
-      updateTimeSlots();
+    function updateTimeSlots() {
+      const container = document.querySelector('#time-slots .grid');
+      container.innerHTML = '';
+      if (!selectedDate) return;
+      const dateString = formatDate(selectedDate);
+      const booked = meetingsData[dateString]?.map(m => m.time) || [];
+
+      availableTimes.forEach(time => {
+        const slot = document.createElement('div');
+        const isBooked = booked.includes(time);
+        slot.className = `time-slot py-2 px-3 text-center rounded-md border ${isBooked ? 'bg-gray-100 text-gray-400 border-gray-200 booked' : 'border-gray-200'}`;
+        slot.textContent = time;
+
+        if (!isBooked) {
+          if (selectedTime === time) {
+            slot.classList.add('selected', 'text-white', 'border-blue-500');
+          }
+          slot.addEventListener('click', () => {
+            document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected', 'text-white', 'border-blue-500'));
+            slot.classList.add('selected', 'text-white', 'border-blue-500');
+            selectedTime = time;
+            bookingTimeInput.value = time;
+          });
+        }
+        container.appendChild(slot);
+      });
     }
 
     async function fetchMeetings() {
@@ -321,69 +348,59 @@
       const data = snapshot.val();
       meetingsData = {};
       if (data) {
-        Object.values(data).forEach(meeting => {
-          if (!meetingsData[meeting.date]) meetingsData[meeting.date] = [];
-          meetingsData[meeting.date].push(meeting);
+        Object.values(data).forEach(m => {
+          if (!meetingsData[m.date]) meetingsData[m.date] = [];
+          meetingsData[m.date].push(m);
         });
       }
       renderCalendar(currentMonth, currentYear);
       if (selectedDate) {
-        const dateStr = formatDate(selectedDate);
-        updateMeetingsList(dateStr);
+        const dateString = formatDate(selectedDate);
+        updateMeetingsList(dateString);
         updateTimeSlots();
       }
     }
 
-    function populateMonthYearDropdown() {
-      const monthNames = [...Array(12)].map((_, i) =>
-        new Date(0, i).toLocaleString('default', { month: 'long' })
-      );
-      monthNames.forEach((month, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = month;
-        monthSelect.appendChild(opt);
-      });
-
-      const startYear = new Date().getFullYear();
-      for (let y = startYear; y <= startYear + 1; y++) {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
-      }
-
-      monthSelect.value = currentMonth;
-      yearSelect.value = currentYear;
-    }
-
     bookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!selectedDate || !selectedTime) {
-        alert('Please select a date and time');
-        return;
-      }
-
-      const title = document.getElementById('title').value;
-      const participants = document.getElementById('participants').value
-        .split(',').map(p => p.trim()).filter(p => p);
-      const description = document.getElementById('description').value;
-      const dateString = formatDate(selectedDate);
+      if (!selectedDate || !selectedTime) return alert("Please select a date and time");
+      const title = document.getElementById("title").value;
+      const participants = document.getElementById("participants").value.split(',').map(p => p.trim()).filter(Boolean);
+      const description = document.getElementById("description").value;
       const newMeeting = {
         id: Date.now(),
-        title,
+        title, participants, description,
         time: selectedTime,
-        participants,
-        description,
-        date: dateString
+        date: formatDate(selectedDate)
       };
-
       await db.ref('meetings').push(newMeeting);
-      alert('Meeting scheduled successfully!');
       bookingForm.reset();
-      selectedTime = null;
       bookingTimeInput.value = '';
+      selectedTime = null;
+      alert('Meeting scheduled successfully!');
       await fetchMeetings();
+    });
+
+    prevMonthBtn.addEventListener('click', () => {
+      currentMonth--;
+      if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      monthSelect.value = currentMonth;
+      yearSelect.value = currentYear;
+      renderCalendar(currentMonth, currentYear);
+    });
+
+    nextMonthBtn.addEventListener('click', () => {
+      currentMonth++;
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      }
+      monthSelect.value = currentMonth;
+      yearSelect.value = currentYear;
+      renderCalendar(currentMonth, currentYear);
     });
 
     monthSelect.addEventListener('change', () => {
@@ -396,12 +413,12 @@
       renderCalendar(currentMonth, currentYear);
     });
 
-    window.addEventListener('DOMContentLoaded', () => {
-      populateMonthYearDropdown();
+    window.addEventListener("DOMContentLoaded", () => {
+      populateDropdowns();
       fetchMeetings();
       const today = new Date();
-      const dateString = formatDate(today);
-      selectDate(today, dateString);
+      const todayStr = formatDate(today);
+      selectDate(today, todayStr);
     });
   </script>
 </body>
