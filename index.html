@@ -24,6 +24,7 @@
     const db = firebase.database();
   </script>
 
+  <!-- Style (tetap sama seperti sebelumnya) -->
   <style>
     .calendar-day { transition: all 0.2s ease; }
     .calendar-day:hover:not(.disabled) { background-color: #EFF6FF; cursor: pointer; }
@@ -45,11 +46,12 @@
   </style>
 </head>
 <body class="bg-gray-50">
-<!-- ...[HTML content remains unchanged]... -->
+
+<!-- ... HTML UTAMA TETAP SAMA ... -->
 
 <script>
   const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
-  let meetingsData = {}; // now dynamically loaded from Firebase
+  let meetingsData = {};
 
   async function fetchMeetings() {
     const snapshot = await db.ref('meetings').once('value');
@@ -81,7 +83,12 @@
     const description = document.getElementById('description').value;
     const dateString = formatDate(selectedDate);
     const newMeeting = {
-      id: Date.now(), title, time: selectedTime, participants, description, date: dateString
+      id: Date.now(),
+      title,
+      time: selectedTime,
+      participants,
+      description,
+      date: dateString
     };
     await db.ref('meetings').push(newMeeting);
     alert('Meeting scheduled successfully!');
@@ -91,11 +98,12 @@
     await fetchMeetings();
   });
 
-  // Replace existing initCalendar function call
   function initCalendar() {
     fetchMeetings();
   }
+
   initCalendar();
 </script>
+
 </body>
 </html>
