@@ -4,11 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Meeting Scheduler Dashboard | GitHub</title>
+    <!-- GitHub Pages Deployment Ready -->
     <meta name="description" content="Interactive meeting scheduler with calendar view and booking system">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .calendar-day {
@@ -57,9 +59,8 @@
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen pb-16">
-    <!-- GitHub Ribbon -->
-    <a href="https://github.com/yourusername/meeting-scheduler" class="absolute top-0 right-0 z-10">
-        <img width="149" height="149" src="https://github.blog/wp-content/uploads/2008/12/forkme_right_green_007200.png?resize=149%2C149" class="attachment-full size-full" alt="Fork me on GitHub">
+    <!-- GitHub Ribbon - Update with your actual GitHub repo URL -->
+    <a href="https://github.com/[yourusername]/meeting-scheduler" class="absolute top-0 right-0 z-10">
     </a>
     
     <div class="container mx-auto px-4 py-8">
@@ -169,13 +170,13 @@
     </div>
 
     <script>
-        // Your web app's Firebase configuration
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
             authDomain: "meetingefk.firebaseapp.com",
             databaseURL: "https://meetingefk-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "meetingefk",
-            storageBucket: "meetingefk.firebasestorage.app",
+            storageBucket: "meetingefk.appspot.com",
             messagingSenderId: "664314278395",
             appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
         };
@@ -184,29 +185,39 @@
         const app = firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
 
-        // Fetch meetings from Firebase
-        async function fetchMeetings() {
-            try {
-                const snapshot = await database.ref('meetings').once('value');
-                meetingsData = snapshot.val() || {};
-                renderCalendar(currentMonth, currentYear);
-                if (selectedDate) {
-                    updateMeetingsList(formatDate(selectedDate));
-                }
-            } catch (error) {
-                console.error('Error fetching meetings:', error);
-            }
-        }
+        // Meeting data will be loaded from Firebase
+        let meetingsData = {};
+            '2023-11-15': [
+                { id: 1, title: 'Product Launch Planning', time: '09:00', participants: ['team@example.com', 'marketing@example.com'], description: 'Planning for the new product launch next quarter' },
+                { id: 2, title: 'Client Review', time: '14:00', participants: ['client@company.com'], description: 'Quarterly review with client' }
+            ],
+            '2023-11-20': [
+                { id: 3, title: 'Team Sync', time: '10:00', participants: ['team@example.com'], description: 'Weekly team synchronization meeting' }
+            ],
+            '2023-11-25': [
+                { id: 4, title: 'Technical Discussion', time: '11:00', participants: ['dev1@example.com', 'dev2@example.com'], description: 'Discussion about the new architecture' }
+            ]
+        };
 
-        // Save new meeting to Firebase
-        async function saveMeeting(meeting) {
-            try {
-                await database.ref('meetings/' + meeting.date).push(meeting);
-                await fetchMeetings(); // Refresh meetings after saving
-            } catch (error) {
-                console.error('Error saving meeting:', error);
-            }
-        }
+        // Available time slots (9AM-5PM with lunch break)
+        const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+
+        // Calendar state
+        let currentMonth = new Date().getMonth();
+        let currentYear = new Date().getFullYear();
+        let selectedDate = null;
+        let selectedTime = null;
+
+        // DOM elements
+        const calendarGrid = document.getElementById('calendar-grid');
+        const selectedDateDisplay = document.getElementById('selected-date');
+        const meetingsDateDisplay = document.getElementById('meetings-date');
+        const meetingsList = document.getElementById('meetings-list');
+        const bookingForm = document.getElementById('booking-form');
+        const bookingDateInput = document.getElementById('date');
+        const bookingTimeInput = document.getElementById('time');
+        const prevMonthBtn = document.getElementById('prev-month');
+        const nextMonthBtn = document.getElementById('next-month');
 
         // Initialize the calendar
         function initCalendar() {
@@ -394,4 +405,86 @@
 
         // Format date as YYYY-MM-DD
         function formatDate(date) {
-            const year
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // Event listeners
+        prevMonthBtn.addEventListener('click', () => {
+            currentMonth--;
+            if (currentMonth < 0) {
+                currentMonth = 11;
+                currentYear--;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+
+        nextMonthBtn.addEventListener('click', () => {
+            currentMonth++;
+            if (currentMonth > 11) {
+                currentMonth = 0;
+                currentYear++;
+            }
+            renderCalendar(currentMonth, currentYear);
+        });
+
+        // Handle form submission with Google Sheets
+        bookingForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!selectedDate || !selectedTime) {
+                alert('Please select a date and time');
+                return;
+            }
+            
+            const title = document.getElementById('title').value;
+            const participants = document.getElementById('participants').value;
+            const description = document.getElementById('description').value;
+            const dateString = formatDate(selectedDate);
+            
+            try {
+                const response = await axios.post(scriptUrl, {
+                    action: 'addMeeting',
+                    meeting: {
+                        title,
+                        date: dateString,
+                        time: selectedTime,
+                        participants,
+                        description
+                    }
+                });
+
+                if (response.data.success) {
+                    await fetchMeetings();
+                    bookingForm.reset();
+                    selectedTime = null;
+                    bookingTimeInput.value = '';
+                    alert('Meeting scheduled successfully!');
+                } else {
+                    alert('Error scheduling meeting: ' + response.data.message);
+                }
+            } catch (error) {
+                console.error('Error scheduling meeting:', error);
+                alert('Failed to schedule meeting. Please try again.');
+            }
+        });
+
+        // Load meetings from Firebase and initialize calendar
+        database.ref('meetings').once('value').then((snapshot) => {
+            meetingsData = snapshot.val() || {};
+            initCalendar();
+        }).catch((error) => {
+            console.error("Error loading data:", error);
+            initCalendar(); // Initialize anyway with empty data
+        });
+    </script>
+    
+    <!-- GitHub Footer -->
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+        <p>Meeting Scheduler - Hosted on <a href="https://github.com/[yourusername]/meeting-scheduler" class="text-blue-600 hover:underline">GitHub</a></p>
+        <p class="mt-1">Google Sheet backend integration ready - Requires Google Apps Script setup</p>
+    </footer>
+</body>
+</html>
