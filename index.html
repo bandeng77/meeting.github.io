@@ -61,6 +61,7 @@
 <body class="bg-gray-50 min-h-screen pb-16">
     <!-- GitHub Ribbon - Update with your actual GitHub repo URL -->
     <a href="https://github.com/[yourusername]/meeting-scheduler" class="absolute top-0 right-0 z-10">
+        <img width="149" height="149" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/3ebc6f41-36e7-4bde-baa3-e0cd1413776f.png" alt="Fork me on GitHub" class="attachment-full size-full">
     </a>
     
     <div class="container mx-auto px-4 py-8">
@@ -187,17 +188,6 @@
 
         // Meeting data will be loaded from Firebase
         let meetingsData = {};
-            '2023-11-15': [
-                { id: 1, title: 'Product Launch Planning', time: '09:00', participants: ['team@example.com', 'marketing@example.com'], description: 'Planning for the new product launch next quarter' },
-                { id: 2, title: 'Client Review', time: '14:00', participants: ['client@company.com'], description: 'Quarterly review with client' }
-            ],
-            '2023-11-20': [
-                { id: 3, title: 'Team Sync', time: '10:00', participants: ['team@example.com'], description: 'Weekly team synchronization meeting' }
-            ],
-            '2023-11-25': [
-                { id: 4, title: 'Technical Discussion', time: '11:00', participants: ['dev1@example.com', 'dev2@example.com'], description: 'Discussion about the new architecture' }
-            ]
-        };
 
         // Available time slots (9AM-5PM with lunch break)
         const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
@@ -219,7 +209,7 @@
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
 
-        // Initialize the calendar
+        // Initialize the calendar with Firebase data
         function initCalendar() {
             renderCalendar(currentMonth, currentYear);
             updateTimeSlots();
@@ -472,13 +462,15 @@
         });
 
         // Load meetings from Firebase and initialize calendar
-        database.ref('meetings').once('value').then((snapshot) => {
-            meetingsData = snapshot.val() || {};
-            initCalendar();
-        }).catch((error) => {
-            console.error("Error loading data:", error);
-            initCalendar(); // Initialize anyway with empty data
-        });
+        function fetchMeetings(callback) {
+            const ref = database.ref('meetings');
+            ref.on('value', (snapshot) => {
+                meetingsData = snapshot.val() || {};
+                if (callback) callback();
+            });
+        }
+
+        fetchMeetings(initCalendar);
     </script>
     
     <!-- GitHub Footer -->
