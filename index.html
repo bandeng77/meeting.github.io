@@ -377,59 +377,6 @@
         alert('Please select a date and time');
         return;
       }
-document.addEventListener('click', function (e) {
-  if (e.target && e.target.classList.contains('download-meeting-ics')) {
-    const dateStr = e.target.dataset.date;
-    const meetingId = e.target.dataset.meetingId;
-
-    const meetings = meetingsData[dateStr];
-    if (!meetings || meetings.length === 0) {
-      alert('No meetings found on this date.');
-      return;
-    }
-
-    const meeting = meetings.find(m => String(m.id) === meetingId);
-    if (!meeting) {
-      alert('Meeting not found.');
-      return;
-    }
-
-    const [year, month, day] = meeting.date.split('-');
-    const [hour, minute] = meeting.time.split(':');
-    const start = new Date(Date.UTC(year, month - 1, day, hour, minute));
-    const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam
-
-    const formatICS = date =>
-      date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
-
-    const icsContent = `
-BEGIN:VCALENDAR
-VERSION:2.0
-PRODID:-//Genetek Scheduler//EN
-BEGIN:VEVENT
-UID:${meeting.id}@genetek.co.id
-DTSTAMP:${formatICS(new Date())}
-DTSTART:${formatICS(start)}
-DTEND:${formatICS(end)}
-SUMMARY:${meeting.title}
-DESCRIPTION:${meeting.description}
-ATTENDEE:${meeting.participants.join(', ')}
-END:VEVENT
-END:VCALENDAR
-`.trim();
-
-    const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url); // cleanup
-  }
-});
 
       const title = document.getElementById('title').value;
       const participants = document.getElementById('participants').value
@@ -471,5 +418,61 @@ END:VCALENDAR
       selectDate(today, dateString);
     });
   </script>
+  <script>
+  // Event listener download .ics per-meeting (PASTIKAN DILUAR fungsi submit!)
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('download-meeting-ics')) {
+      const dateStr = e.target.dataset.date;
+      const meetingId = e.target.dataset.meetingId;
+
+      const meetings = meetingsData[dateStr];
+      if (!meetings || meetings.length === 0) {
+        alert('No meetings found on this date.');
+        return;
+      }
+
+      const meeting = meetings.find(m => String(m.id) === meetingId);
+      if (!meeting) {
+        alert('Meeting not found.');
+        return;
+      }
+
+      const [year, month, day] = meeting.date.split('-');
+      const [hour, minute] = meeting.time.split(':');
+      const start = new Date(Date.UTC(year, month - 1, day, hour, minute));
+      const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam
+
+      const formatICS = date =>
+        date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+      const icsContent = `
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Genetek Scheduler//EN
+BEGIN:VEVENT
+UID:${meeting.id}@genetek.co.id
+DTSTAMP:${formatICS(new Date())}
+DTSTART:${formatICS(start)}
+DTEND:${formatICS(end)}
+SUMMARY:${meeting.title}
+DESCRIPTION:${meeting.description}
+ATTENDEE:${meeting.participants.join(', ')}
+END:VEVENT
+END:VCALENDAR
+      `.trim();
+
+      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+  });
+</script>
 </body>
 </html>
