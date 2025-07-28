@@ -150,6 +150,9 @@
           <div class="p-6">
             <h2 class="text-xl font-bold text-gray-800 mb-4">Schedule New Meeting</h2>
             <form id="booking-form">
+              <button id="download-ics" type="button" class="mt-2 w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-md transition duration-150 ease-in-out">
+  Download .ics
+</button>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
@@ -373,6 +376,48 @@
         alert('Please select a date and time');
         return;
       }
+document.getElementById('download-ics').addEventListener('click', () => {
+  if (!selectedDate || !selectedTime) {
+    alert('Please select a date and time first');
+    return;
+  }
+
+  const title = document.getElementById('title').value || 'Untitled Meeting';
+  const description = document.getElementById('description').value || '';
+  const participants = document.getElementById('participants').value || '';
+  const startDateTime = new Date(selectedDate);
+  const [hours, minutes] = selectedTime.split(':');
+  startDateTime.setHours(parseInt(hours), parseInt(minutes));
+
+  const endDateTime = new Date(startDateTime.getTime() + 60 * 60 * 1000); // +1 jam
+
+  const formatICSDate = date =>
+    date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+
+  const icsContent = `
+BEGIN:VCALENDAR
+VERSION:2.0
+PRODID:-//Genetek Scheduler//EN
+BEGIN:VEVENT
+UID:${Date.now()}@genetek.co.id
+DTSTAMP:${formatICSDate(new Date())}
+DTSTART:${formatICSDate(startDateTime)}
+DTEND:${formatICSDate(endDateTime)}
+SUMMARY:${title}
+DESCRIPTION:${description}
+ATTENDEE:${participants}
+END:VEVENT
+END:VCALENDAR
+`.trim();
+
+  const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = `${title.replace(/\s+/g, '_')}.ics`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
 
       const title = document.getElementById('title').value;
       const participants = document.getElementById('participants').value
