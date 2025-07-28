@@ -73,13 +73,17 @@
 <body class="bg-gray-50">
   <div class="container mx-auto px-4 py-8">
     <div class="flex flex-col lg:flex-row gap-8">
+      
       <!-- Sidebar Kiri: Kalender -->
       <div class="w-full lg:w-2/5 bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="p-4
+        <div class="p-6">
+          
           <!-- Logo & Identitas -->
           <div class="flex items-center space-x-3 mb-4">
             <img src="genetek-logo.png" alt="Genetek Logo" class="h-12 w-auto" />
             <div>
+              <h2 class="text-lg font-bold text-gray-800">Genetek</h2>
+              <p class="text-sm text-gray-500">Meeting Scheduler</p>
             </div>
           </div>
 
@@ -118,10 +122,13 @@
               <!-- Akan digenerate dengan JS -->
             </div>
           </div>
+
         </div>
       </div>
+
       <!-- Sidebar Kanan: Meeting List dan Booking Form -->
       <div class="w-full lg:w-3/5 space-y-6">
+
         <!-- Daftar Meeting -->
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
           <div class="p-6">
@@ -171,9 +178,11 @@
             </form>
           </div>
         </div>
+
       </div>
     </div>
   </div>
+</body>
   <script>
     // Variabel global
     let currentMonth = new Date().getMonth();
