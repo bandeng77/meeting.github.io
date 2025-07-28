@@ -3,14 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Meeting Scheduler Dashboard | GitHub</title>
-    <!-- GitHub Pages Deployment Ready -->
-    <meta name="description" content="Interactive meeting scheduler with calendar view and booking system">
+    <title>Meeting Scheduler Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         .calendar-day {
@@ -58,12 +54,7 @@
         }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen pb-16">
-    <!-- GitHub Ribbon - Update with your actual GitHub repo URL -->
-    <a href="https://github.com/[yourusername]/meeting-scheduler" class="absolute top-0 right-0 z-10">
-        <img width="149" height="149" src="https://storage.googleapis.com/workspace-0f70711f-8b4e-4d94-86f1-2a93ccde5887/image/3ebc6f41-36e7-4bde-baa3-e0cd1413776f.png" alt="Fork me on GitHub" class="attachment-full size-full">
-    </a>
-    
+<body class="bg-gray-50">
     <div class="container mx-auto px-4 py-8">
         <div class="flex flex-col lg:flex-row gap-8">
             <!-- Left Column - Calendar -->
@@ -171,23 +162,31 @@
     </div>
 
     <script>
-        // Firebase configuration
+     // Your web app's Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
             authDomain: "meetingefk.firebaseapp.com",
             databaseURL: "https://meetingefk-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "meetingefk",
-            storageBucket: "meetingefk.appspot.com",
+            storageBucket: "meetingefk.firebasestorage.app",
             messagingSenderId: "664314278395",
             appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
         };
-
         // Initialize Firebase
-        const app = firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
 
-        // Meeting data will be loaded from Firebase
-        let meetingsData = {};
+        // Sample meeting data
+        const meetingsData = {
+            '2023-11-15': [
+                { id: 1, title: 'Product Launch Planning', time: '09:00', participants: ['team@example.com', 'marketing@example.com'], description: 'Planning for the new product launch next quarter' },
+                { id: 2, title: 'Client Review', time: '14:00', participants: ['client@company.com'], description: 'Quarterly review with client' }
+            ],
+            '2023-11-20': [
+                { id: 3, title: 'Team Sync', time: '10:00', participants: ['team@example.com'], description: 'Weekly team synchronization meeting' }
+            ],
+            '2023-11-25': [
+                { id: 4, title: 'Technical Discussion', time: '11:00', participants: ['dev1@example.com', 'dev2@example.com'], description: 'Discussion about the new architecture' }
+            ]
+        };
 
         // Available time slots (9AM-5PM with lunch break)
         const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
@@ -209,7 +208,7 @@
         const prevMonthBtn = document.getElementById('prev-month');
         const nextMonthBtn = document.getElementById('next-month');
 
-        // Initialize the calendar with Firebase data
+        // Initialize the calendar
         function initCalendar() {
             renderCalendar(currentMonth, currentYear);
             updateTimeSlots();
@@ -420,8 +419,8 @@
             renderCalendar(currentMonth, currentYear);
         });
 
-        // Handle form submission with Google Sheets
-        bookingForm.addEventListener('submit', async (e) => {
+        // Handle form submission
+        bookingForm.addEventListener('submit', (e) => {
             e.preventDefault();
             
             if (!selectedDate || !selectedTime) {
@@ -430,53 +429,42 @@
             }
             
             const title = document.getElementById('title').value;
-            const participants = document.getElementById('participants').value;
+            const participants = document.getElementById('participants').value
+                .split(',')
+                .map(email => email.trim())
+                .filter(email => email);
             const description = document.getElementById('description').value;
             const dateString = formatDate(selectedDate);
             
-            try {
-                const response = await axios.post(scriptUrl, {
-                    action: 'addMeeting',
-                    meeting: {
-                        title,
-                        date: dateString,
-                        time: selectedTime,
-                        participants,
-                        description
-                    }
-                });
-
-                if (response.data.success) {
-                    await fetchMeetings();
-                    bookingForm.reset();
-                    selectedTime = null;
-                    bookingTimeInput.value = '';
-                    alert('Meeting scheduled successfully!');
-                } else {
-                    alert('Error scheduling meeting: ' + response.data.message);
-                }
-            } catch (error) {
-                console.error('Error scheduling meeting:', error);
-                alert('Failed to schedule meeting. Please try again.');
+            // Add new meeting to data
+            if (!meetingsData[dateString]) {
+                meetingsData[dateString] = [];
             }
+            
+            const newMeeting = {
+                id: Date.now(),
+                title,
+                time: selectedTime,
+                participants,
+                description
+            };
+            
+            meetingsData[dateString].push(newMeeting);
+            
+            // Update UI
+            updateMeetingsList(dateString);
+            updateTimeSlots();
+            
+            // Reset form
+            bookingForm.reset();
+            selectedTime = null;
+            bookingTimeInput.value = '';
+            
+            alert('Meeting scheduled successfully!');
         });
 
-        // Load meetings from Firebase and initialize calendar
-        function fetchMeetings(callback) {
-            const ref = database.ref('meetings');
-            ref.on('value', (snapshot) => {
-                meetingsData = snapshot.val() || {};
-                if (callback) callback();
-            });
-        }
-
-        fetchMeetings(initCalendar);
+        // Initialize
+        initCalendar();
     </script>
-    
-    <!-- GitHub Footer -->
-    <footer class="mt-12 text-center text-gray-500 text-sm">
-        <p>Meeting Scheduler - Hosted on <a href="https://github.com/[yourusername]/meeting-scheduler" class="text-blue-600 hover:underline">GitHub</a></p>
-        <p class="mt-1">Google Sheet backend integration ready - Requires Google Apps Script setup</p>
-    </footer>
 </body>
 </html>
