@@ -151,6 +151,8 @@
           </div>
         </div>
 
+<!-- ... kode HTML sebelumnya ... -->
+
         <!-- Form Booking -->
         <div class="bg-white rounded-xl shadow-md overflow-hidden">
           <div class="p-6">
@@ -165,6 +167,18 @@
                   <label for="participants" class="block text-sm font-medium text-gray-700 mb-1">Participants</label>
                   <input type="text" id="participants" name="participants" placeholder="Emails, comma separated" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
+                <!-- START: Tambahan untuk Organizer -->
+                <div>
+                  <label for="organizer-name" class="block text-sm font-medium text-gray-700 mb-1">Organizer Name</label>
+                  <!-- Hapus 'value="Crenata Genetek"' -->
+                  <input type="text" id="organizer-name" name="organizerName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <div>
+                  <label for="organizer-email" class="block text-sm font-medium text-gray-700 mb-1">Organizer Email</label>
+                  <!-- Hapus 'value="crenata@genetek.co.id"' -->
+                  <input type="email" id="organizer-email" name="organizerEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <!-- END: Tambahan untuk Organizer -->
                 <div>
                   <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
                   <input type="text" id="date" name="date" readonly class="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -184,7 +198,6 @@
             </form>
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -483,68 +496,132 @@
     });
   </script>
   <script>
-  // Event listener download .ics per-meeting (PASTIKAN DILUAR fungsi submit!)
-  document.addEventListener('click', function (e) {
-    if (e.target && e.target.classList.contains('download-meeting-ics')) {
-      const dateStr = e.target.dataset.date;
-      const meetingId = e.target.dataset.meetingId; // Ini adalah ID yang Anda berikan saat membuat meeting (Date.now())
+    // --- Tambahkan ini di bagian atas script Anda, di dekat variabel global ---
+    const TIMEZONE_ID = "Asia/Jakarta"; // Sesuaikan dengan timezone Anda
+    const TIMEZONE_OFFSET = "+0700"; // Offset WIB
 
-      const meetings = meetingsData[dateStr];
-      if (!meetings || meetings.length === 0) {
-        alert('No meetings found on this date.');
-        return;
-      }
+    // Helper function untuk format tanggal/waktu sesuai iCalendar
+    function formatICSDate(date, includeTime = true, includeTz = false) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
 
-      // Cari meeting berdasarkan ID yang disimpan (Date.now())
-      const meeting = meetings.find(m => String(m.id) === meetingId);
-      if (!meeting) {
-        alert('Meeting not found.');
-        return;
-      }
+        let formatted = `${year}${month}${day}`;
+        if (includeTime) {
+            formatted += `T${hours}${minutes}${seconds}`;
+        }
+        if (includeTz) {
+            formatted = `;TZID="${TIMEZONE_ID}":${formatted}`;
+        } else {
+            formatted += 'Z'; // UTC
+        }
+        return formatted;
+    }
 
-      const [year, month, day] = meeting.date.split('-');
-      const [hour, minute] = meeting.time.split(':');
-      
-      // Buat objek Date untuk start time (UTC)
-      // Perhatikan bahwa month - 1 karena bulan di JavaScript berbasis 0
-      const start = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)));
-      const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam durasi meeting
+    // Event listener download .ics per-meeting (PASTIKAN DILUAR fungsi submit!)
+    document.addEventListener('click', function (e) {
+        if (e.target && e.target.classList.contains('download-meeting-ics')) {
+            const dateStr = e.target.dataset.date;
+            const meetingId = e.target.dataset.meetingId; // Ini adalah ID yang Anda berikan saat membuat meeting (Date.now())
 
-      const formatICS = date =>
-        date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; // Format YYYYMMDDTHHMMSSZ
+            const meetings = meetingsData[dateStr];
+            if (!meetings || meetings.length === 0) {
+                alert('No meetings found on this date.');
+                return;
+            }
 
-      const icsContent = `
+            // Cari meeting berdasarkan ID yang disimpan (Date.now())
+            const meeting = meetings.find(m => String(m.id) === meetingId);
+            if (!meeting) {
+                alert('Meeting not found.');
+                return;
+            }
+
+            // START: Ambil nilai organizer dari input HTML
+            const organizerName = document.getElementById('organizer-name').value;
+            const organizerEmail = document.getElementById('organizer-email').value;
+            // END: Ambil nilai organizer dari input HTML
+
+            const [year, month, day] = meeting.date.split('-');
+            const [hour, minute] = meeting.time.split(':');
+
+            // Buat objek Date untuk start time (lokal, karena kita akan pakai TZID)
+            const start = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
+            const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam durasi meeting
+
+            const now = new Date(); // Waktu saat ini untuk DTSTAMP dan LAST-MODIFIED
+
+            // Escape karakter khusus untuk SUMMARY dan DESCRIPTION
+            const escapedSummary = meeting.title.replace(/,/g, '\\,');
+            const escapedDescription = meeting.description.replace(/,/g, '\\,').replace(/\n/g, '\\n');
+
+            // Buat string ATTENDEE yang lebih lengkap
+            const attendeesICS = meeting.participants.map(p => {
+                const cn = p.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Contoh: galih.genetek -> Galih Genetek
+                return `ATTENDEE;CN=${cn};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${p}`;
+            }).join('\n'); // Gunakan newline untuk setiap ATTENDEE
+
+            // Buat deskripsi HTML
+            const htmlDescription = `<html><body id='htmlmode'><h3>${organizerName} have invited you to a new meeting!</h3><p>Subject: ${escapedSummary}</p><p>Organizer: ${organizerName}</p><p>Location: ${meeting.meetingRoom || ''}</p><p>Time: ${start.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p><p>Invitees: ${meeting.participants.join(', ')}</p><br/></body></html>`;
+
+            // Buat deskripsi teks biasa
+            const textDescription = `-:::_::_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_::_:_::-\n${organizerName} have invited you to a new meeting!\n\nSubject: ${escapedSummary}\nOrganizer: "${organizerName}\n\nTime: ${start.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}\n \nInvitees: ${meeting.participants.join(', ')}\n\n\n-:::_::_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_::_:_::-`;
+
+
+            const icsContent = `
 BEGIN:VCALENDAR
+PRODID:Carbonio-Calendar-Provider
 VERSION:2.0
-PRODID:-//Genetek Scheduler//EN
 METHOD:REQUEST
-CALSCALE:GREGORIAN
+BEGIN:VTIMEZONE
+TZID:${TIMEZONE_ID}
+BEGIN:STANDARD
+DTSTART:16010101T000000
+TZOFFSETTO:${TIMEZONE_OFFSET}
+TZOFFSETFROM:${TIMEZONE_OFFSET}
+TZNAME:${TIMEZONE_ID.split('/')[1]}
+END:STANDARD
+END:VTIMEZONE
 BEGIN:VEVENT
 UID:${meeting.id}@genetek.co.id
-DTSTAMP:${formatICS(new Date())}
-DTSTART:${formatICS(start)}
-DTEND:${formatICS(end)}
-SUMMARY:${meeting.title}
-DESCRIPTION:${meeting.description}
-LOCATION:${meeting.meetingRoom || 'Not specified'}
-ATTENDEE:${meeting.participants.map(p => `mailto:${p}`).join(',')}
+SUMMARY:${escapedSummary}
+${attendeesICS}
+ORGANIZER;CN=${organizerName}:mailto:${organizerEmail}
+DTSTART${formatICSDate(start, true, true)}
+DTEND${formatICSDate(end, true, true)}
+STATUS:CONFIRMED
+CLASS:PUBLIC
+X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
+TRANSP:OPAQUE
+LAST-MODIFIED:${formatICSDate(now, true, false)}
+DTSTAMP:${formatICSDate(now, true, false)}
+SEQUENCE:0
+DESCRIPTION:${textDescription}
+X-ALT-DESC;FMTTYPE=text/html:${htmlDescription}
+BEGIN:VALARM
+ACTION:DISPLAY
+TRIGGER;RELATED=START:-PT5M
+DESCRIPTION:Reminder
+END:VALARM
 END:VEVENT
 END:VCALENDAR
-      `.trim();
+            `.trim();
 
-      const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-      const url = URL.createObjectURL(blob);
+            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
 
-      const link = document.createElement('a');
-      link.href = url;
-      // Nama file akan menjadi "Judul_Rapat.ics"
-      link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`; 
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-    }
-  });
-</script>
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+    });
+  </script>
 </body>
 </html>
