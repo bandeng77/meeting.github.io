@@ -41,7 +41,7 @@
     }
     .calendar-day.has-meetings::after {
       content: '';
-      position: fixed;
+      position: fixed; /* Changed from absolute to fixed for better positioning relative to the day element */
       bottom: 4px;
       left: 50%;
       transform: translateX(-50%);
@@ -366,9 +366,11 @@
       const data = snapshot.val();
       meetingsData = {};
       if (data) {
-        Object.values(data).forEach(meeting => {
-          if (!meetingsData[meeting.date]) meetingsData[meeting.date] = [];
-          meetingsData[meeting.date].push(meeting);
+        // Convert object of objects to array of objects, and assign IDs
+        Object.keys(data).forEach(key => {
+            const meeting = { ...data[key], firebaseId: key }; // Store Firebase key as firebaseId
+            if (!meetingsData[meeting.date]) meetingsData[meeting.date] = [];
+            meetingsData[meeting.date].push(meeting);
         });
       }
       renderCalendar(currentMonth, currentYear);
@@ -426,7 +428,7 @@
       }
 
       const newMeeting = {
-        id: Date.now(),
+        id: Date.now(), // Menggunakan Date.now() sebagai ID unik
         title,
         time: selectedTime,
         participants,
@@ -435,8 +437,14 @@
         meetingRoom: selectedMeetingRoom // Tambahkan ruang meeting ke data
       };
 
-      await db.ref('meetings').push(newMeeting);
-      alert('Meeting scheduled successfully!');
+      try {
+        await db.ref('meetings').push(newMeeting);
+        alert('Meeting scheduled successfully!');
+      } catch (error) {
+        console.error("Error scheduling meeting:", error);
+        alert("Failed to schedule meeting. Please try again.");
+      }
+      
       bookingForm.reset();
       selectedTime = null;
       bookingTimeInput.value = '';
@@ -479,7 +487,7 @@
   document.addEventListener('click', function (e) {
     if (e.target && e.target.classList.contains('download-meeting-ics')) {
       const dateStr = e.target.dataset.date;
-      const meetingId = e.target.dataset.meetingId;
+      const meetingId = e.target.dataset.meetingId; // Ini adalah ID yang Anda berikan saat membuat meeting (Date.now())
 
       const meetings = meetingsData[dateStr];
       if (!meetings || meetings.length === 0) {
@@ -487,6 +495,7 @@
         return;
       }
 
+      // Cari meeting berdasarkan ID yang disimpan (Date.now())
       const meeting = meetings.find(m => String(m.id) === meetingId);
       if (!meeting) {
         alert('Meeting not found.');
@@ -495,16 +504,21 @@
 
       const [year, month, day] = meeting.date.split('-');
       const [hour, minute] = meeting.time.split(':');
-      const start = new Date(Date.UTC(year, month - 1, day, hour, minute));
-      const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam
+      
+      // Buat objek Date untuk start time (UTC)
+      // Perhatikan bahwa month - 1 karena bulan di JavaScript berbasis 0
+      const start = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute)));
+      const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam durasi meeting
 
       const formatICS = date =>
-        date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z';
+        date.toISOString().replace(/[-:]/g, '').split('.')[0] + 'Z'; // Format YYYYMMDDTHHMMSSZ
 
       const icsContent = `
 BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Genetek Scheduler//EN
+METHOD:REQUEST
+CALSCALE:GREGORIAN
 BEGIN:VEVENT
 UID:${meeting.id}@genetek.co.id
 DTSTAMP:${formatICS(new Date())}
@@ -512,8 +526,8 @@ DTSTART:${formatICS(start)}
 DTEND:${formatICS(end)}
 SUMMARY:${meeting.title}
 DESCRIPTION:${meeting.description}
-LOCATION:${meeting.meetingRoom || 'Not specified'} <!-- Tambahkan lokasi/ruang meeting -->
-ATTENDEE:${meeting.participants.join(', ')}
+LOCATION:${meeting.meetingRoom || 'Not specified'}
+ATTENDEE:${meeting.participants.map(p => `mailto:${p}`).join(',')}
 END:VEVENT
 END:VCALENDAR
       `.trim();
@@ -523,7 +537,8 @@ END:VCALENDAR
 
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`;
+      // Nama file akan menjadi "Judul_Rapat.ics"
+      link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`; 
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
