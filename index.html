@@ -115,6 +115,14 @@
 
           <!-- Slot Waktu -->
           <div id="time-slots" class="mt-6">
+            <h3 class="text-lg font-semibold text-gray-800 mb-4">Meeting Room</h3>
+            <select id="meeting-room-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm w-full mb-4">
+              <option value="">Select a Meeting Room</option>
+              <option value="Lantai 1">Lantai 1</option>
+              <option value="Lantai 2">Lantai 2</option>
+              <option value="Lantai 3">Lantai 3</option>
+            </select>
+
             <h3 class="text-lg font-semibold text-gray-800 mb-4">Available Time Slots</h3>
             <div class="grid grid-cols-3 gap-2">
               <!-- Akan digenerate dengan JS -->
@@ -187,6 +195,7 @@
     let currentYear = new Date().getFullYear();
     let selectedDate = null;
     let selectedTime = null;
+    let selectedMeetingRoom = null; // Variabel baru untuk ruang meeting yang dipilih
     let meetingsData = {};
 
     const calendarGrid = document.getElementById('calendar-grid');
@@ -198,8 +207,14 @@
     const bookingTimeInput = document.getElementById('time');
     const monthSelect = document.getElementById('month-select');
     const yearSelect = document.getElementById('year-select');
+    const meetingRoomSelect = document.getElementById('meeting-room-select'); // Dapatkan elemen dropdown baru
 
-    const availableTimes = ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+    // Data ketersediaan waktu per ruangan (contoh, Anda bisa menyesuaikannya)
+    const availableTimesByRoom = {
+      'Lantai 1': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'],
+      'Lantai 2': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'],
+      'Lantai 4': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00']
+    };
 
     function formatDate(date) {
       const year = date.getFullYear();
@@ -257,12 +272,25 @@
     function updateTimeSlots() {
       const container = document.querySelector('#time-slots .grid');
       container.innerHTML = '';
-      if (!selectedDate) return;
+      if (!selectedDate || !selectedMeetingRoom) { // Periksa juga selectedMeetingRoom
+        container.innerHTML = `<div class="col-span-3 text-center text-gray-500">Select a meeting room and date to see available slots.</div>`;
+        return;
+      }
 
       const dateStr = formatDate(selectedDate);
-      const bookedTimes = meetingsData[dateStr]?.map(m => m.time) || [];
+      // Filter meetings for the selected room and date
+      const bookedTimes = meetingsData[dateStr]
+        ?.filter(m => m.meetingRoom === selectedMeetingRoom) // Filter berdasarkan ruang meeting
+        .map(m => m.time) || [];
 
-      availableTimes.forEach(time => {
+      const timesForSelectedRoom = availableTimesByRoom[selectedMeetingRoom] || [];
+
+      if (timesForSelectedRoom.length === 0) {
+        container.innerHTML = `<div class="col-span-3 text-center text-gray-500">No available times for this room.</div>`;
+        return;
+      }
+
+      timesForSelectedRoom.forEach(time => {
         const slot = document.createElement('div');
         const isBooked = bookedTimes.includes(time);
         slot.className = `time-slot py-2 px-3 text-center rounded-md border ${isBooked ? 'bg-gray-100 text-gray-400 border-gray-200 booked' : 'border-gray-200'}`;
@@ -284,22 +312,25 @@
 
     function updateMeetingsList(dateString) {
       meetingsList.innerHTML = '';
-      if (!meetingsData[dateString] || meetingsData[dateString].length === 0) {
+      // Filter meetings for the selected date
+      const meetingsOnSelectedDate = meetingsData[dateString] || [];
+
+      if (meetingsOnSelectedDate.length === 0) {
         meetingsList.innerHTML = `<div class="text-center py-8 text-gray-500">
           <p>No meetings scheduled for this date</p>
-          <p class="text-sm mt-2">Select a time slot below to schedule a meeting</p>
+          <p class="text-sm mt-2">Select a time slot and meeting room below to schedule a meeting</p>
         </div>`;
         return;
       }
 
-      meetingsData[dateString].forEach(meeting => {
+      meetingsOnSelectedDate.forEach(meeting => {
         const el = document.createElement('div');
         el.className = 'meeting-card p-4 border border-gray-200 rounded-lg';
         el.innerHTML = `
   <div class="flex justify-between items-start">
     <div>
       <h3 class="font-semibold text-gray-800">${meeting.title}</h3>
-      <p class="text-sm text-gray-500 mt-1">${meeting.time}</p>
+      <p class="text-sm text-gray-500 mt-1">${meeting.time} - ${meeting.meetingRoom}</p> <!-- Tampilkan ruang meeting -->
     </div>
     <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Scheduled</span>
   </div>
@@ -320,14 +351,14 @@
 
     function selectDate(date, dateStr) {
       selectedDate = date;
-      selectedTime = null;
+      selectedTime = null; // Reset selected time when date changes
       selectedDateDisplay.textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
       meetingsDateDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
       bookingDateInput.value = dateStr;
       bookingTimeInput.value = '';
       renderCalendar(currentMonth, currentYear);
       updateMeetingsList(dateStr);
-      updateTimeSlots();
+      updateTimeSlots(); // Panggil updateTimeSlots setelah memilih tanggal
     }
 
     async function fetchMeetings() {
@@ -373,8 +404,8 @@
 
     bookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      if (!selectedDate || !selectedTime) {
-        alert('Please select a date and time');
+      if (!selectedDate || !selectedTime || !selectedMeetingRoom) { // Periksa juga selectedMeetingRoom
+        alert('Please select a date, time, and meeting room');
         return;
       }
 
@@ -383,13 +414,25 @@
         .split(',').map(p => p.trim()).filter(p => p);
       const description = document.getElementById('description').value;
       const dateString = formatDate(selectedDate);
+
+      // Cek apakah slot waktu sudah dipesan untuk ruangan dan tanggal yang sama
+      const isAlreadyBooked = meetingsData[dateString]?.some(
+        m => m.time === selectedTime && m.meetingRoom === selectedMeetingRoom
+      );
+
+      if (isAlreadyBooked) {
+        alert(`The time slot ${selectedTime} in ${selectedMeetingRoom} is already booked for this date. Please choose another.`);
+        return;
+      }
+
       const newMeeting = {
         id: Date.now(),
         title,
         time: selectedTime,
         participants,
         description,
-        date: dateString
+        date: dateString,
+        meetingRoom: selectedMeetingRoom // Tambahkan ruang meeting ke data
       };
 
       await db.ref('meetings').push(newMeeting);
@@ -397,17 +440,30 @@
       bookingForm.reset();
       selectedTime = null;
       bookingTimeInput.value = '';
-      await fetchMeetings();
+      // Reset meeting room selection after successful booking
+      meetingRoomSelect.value = '';
+      selectedMeetingRoom = null;
+      await fetchMeetings(); // Refresh data dan UI
     });
 
     monthSelect.addEventListener('change', () => {
       currentMonth = parseInt(monthSelect.value);
       renderCalendar(currentMonth, currentYear);
+      updateTimeSlots(); // Panggil updateTimeSlots saat bulan/tahun berubah
     });
 
     yearSelect.addEventListener('change', () => {
       currentYear = parseInt(yearSelect.value);
       renderCalendar(currentMonth, currentYear);
+      updateTimeSlots(); // Panggil updateTimeSlots saat bulan/tahun berubah
+    });
+
+    // Event listener baru untuk dropdown ruang meeting
+    meetingRoomSelect.addEventListener('change', () => {
+      selectedMeetingRoom = meetingRoomSelect.value;
+      selectedTime = null; // Reset selected time when room changes
+      bookingTimeInput.value = ''; // Clear time input
+      updateTimeSlots(); // Perbarui slot waktu berdasarkan ruang meeting yang dipilih
     });
 
     window.addEventListener('DOMContentLoaded', () => {
@@ -456,6 +512,7 @@ DTSTART:${formatICS(start)}
 DTEND:${formatICS(end)}
 SUMMARY:${meeting.title}
 DESCRIPTION:${meeting.description}
+LOCATION:${meeting.meetingRoom || 'Not specified'} <!-- Tambahkan lokasi/ruang meeting -->
 ATTENDEE:${meeting.participants.join(', ')}
 END:VEVENT
 END:VCALENDAR
