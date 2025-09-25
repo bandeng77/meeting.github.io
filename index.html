@@ -8,8 +8,6 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
-    <!-- Optional: Firebase Storage SDK for future photo upload -->
-    <!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script> -->
     <style>
         /* Variabel CSS untuk tema */
         :root {
@@ -619,6 +617,51 @@
             gap: 10px;
             margin-top: 15px;
         }
+
+        /* Style for meeting photo thumbnail in Daftar Hadir */
+        #meeting-photo-display {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        #meeting-photo-display img {
+            width: 150px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        #meeting-photo-display p {
+            font-size: 0.85rem;
+            color: var(--text-light);
+            margin-top: 5px;
+        }
+
+        /* Meeting Details Modal */
+        #meeting-details-modal .modal-content {
+            text-align: left;
+        }
+        #meeting-details-modal h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        #meeting-details-modal p {
+            margin-bottom: 0.5rem;
+        }
+        #meeting-details-modal ul {
+            list-style-type: disc;
+            margin-left: 20px;
+            margin-bottom: 1rem;
+        }
+        #meeting-details-modal .meeting-photo-detail {
+            margin-top: 1rem;
+            text-align: center;
+        }
+        #meeting-details-modal .meeting-photo-detail img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
     </style>
 </head>
 <body>
@@ -635,36 +678,17 @@
                 <button class="nav-btn" data-target="meetings-section">
                     <i class="fas fa-history"></i> Riwayat Meeting
                 </button>
+                <button class="nav-btn" data-target="calendar-section">
+                    <i class="fas fa-calendar-alt"></i> Jadwal Meeting
+                </button>
             </div>
         </header>
 
         <!-- Attendance Section -->
         <section id="attendance-section" class="content-section active">
             <div class="main-content">
-                <!-- Calendar Section -->
-                <div class="calendar-container">
-                    <h2 class="card-title">
-                        <i class="fas fa-calendar-alt"></i>
-                        <span>Jadwal Meeting</span>
-                    </h2>
-                    <div class="calendar-header">
-                        <button id="prevMonth"><i class="fas fa-chevron-left"></i></button>
-                        <h3 id="currentMonthYear"></h3>
-                        <button id="nextMonth"><i class="fas fa-chevron-right"></i></button>
-                    </div>
-                    <div class="calendar-grid" id="calendar-grid">
-                        <!-- Days of the week -->
-                        <div class="calendar-day-name">Min</div>
-                        <div class="calendar-day-name">Sen</div>
-                        <div class="calendar-day-name">Sel</div>
-                        <div class="calendar-day-name">Rab</div>
-                        <div class="calendar-day-name">Kam</div>
-                        <div class="calendar-day-name">Jum</div>
-                        <div class="calendar-day-name">Sab</div>
-                        <!-- Calendar days will be inserted here -->
-                    </div>
-                </div>
-
+                <!-- Calendar Section (moved to its own section) -->
+                <!-- This space can be used for other attendance-related content if needed -->
                 <div>
                     <div class="card">
                         <h2 class="card-title">
@@ -697,18 +721,6 @@
                                     <option value="other">Lainnya</option>
                                 </select>
                             </div>
-
-                            <div class="form-group">
-                                <button type="button" id="take-photo-btn" class="btn btn-secondary">
-                                    <i class="fas fa-camera"></i>
-                                    <span>Ambil Foto</span>
-                                </button>
-                                <input type="hidden" id="photo-data-input"> <!-- To store base64 photo data -->
-                                <div id="photo-thumbnail" style="margin-top: 10px; display: none;">
-                                    <img id="thumbnail-img" src="" alt="Foto Absensi" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
-                                    <p style="font-size: 0.8rem; color: var(--text-light);">Foto berhasil diambil!</p>
-                                </div>
-                            </div>
                             
                             <button type="submit" class="btn btn-primary">
                                 <i class="fas fa-check-circle"></i>
@@ -728,6 +740,18 @@
                         <div id="attendance-list" class="attendance-list">
                             <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
                                 Belum ada absensi yang tercatat. Jadilah yang pertama!
+                            </div>
+                        </div>
+
+                        <!-- Tombol Ambil Foto untuk Meeting -->
+                        <div style="margin-top: 1.5rem; text-align: center;">
+                            <button type="button" id="take-meeting-photo-btn" class="btn btn-secondary" disabled>
+                                <i class="fas fa-camera"></i>
+                                <span>Ambil Foto Meeting</span>
+                            </button>
+                            <div id="meeting-photo-display" style="display: none;">
+                                <img id="meeting-photo-thumbnail" src="" alt="Foto Meeting">
+                                <p>Foto meeting berhasil diambil!</p>
                             </div>
                         </div>
                         
@@ -799,6 +823,32 @@
                 </div>
             </div>
         </section>
+
+        <!-- Calendar Section (New dedicated section) -->
+        <section id="calendar-section" class="content-section">
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Jadwal Meeting</span>
+                </h2>
+                <div class="calendar-header">
+                    <button id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                    <h3 id="currentMonthYear"></h3>
+                    <button id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                </div>
+                <div class="calendar-grid" id="calendar-grid">
+                    <!-- Days of the week -->
+                    <div class="calendar-day-name">Min</div>
+                    <div class="calendar-day-name">Sen</div>
+                    <div class="calendar-day-name">Sel</div>
+                    <div class="calendar-day-name">Rab</div>
+                    <div class="calendar-day-name">Kam</div>
+                    <div class="calendar-day-name">Jum</div>
+                    <div class="calendar-day-name">Sab</div>
+                    <!-- Calendar days will be inserted here -->
+                </div>
+            </div>
+        </section>
     </div>
 
     <div id="toast" class="toast">
@@ -810,7 +860,7 @@
     <div id="camera-modal" class="modal">
         <div class="modal-content">
             <span class="modal-close-btn">&times;</span>
-            <h2>Ambil Foto Absensi</h2>
+            <h2>Ambil Foto Meeting</h2>
             <video id="camera-stream" autoplay playsinline></video>
             <canvas id="photo-canvas" style="display: none;"></canvas> <!-- Hidden canvas for capturing -->
             <img id="photo-preview" src="" alt="Preview Foto">
@@ -818,6 +868,22 @@
                 <button id="capture-photo-btn" class="btn btn-primary"><i class="fas fa-camera"></i> Ambil Gambar</button>
                 <button id="retake-photo-btn" class="btn btn-secondary" style="display: none;"><i class="fas fa-redo"></i> Ambil Ulang</button>
                 <button id="save-photo-btn" class="btn btn-primary" style="display: none;"><i class="fas fa-check"></i> Gunakan Foto</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meeting Details Modal -->
+    <div id="meeting-details-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn meeting-details-close-btn">&times;</span>
+            <h2 id="detail-meeting-title"></h2>
+            <p><strong>Tanggal & Waktu:</strong> <span id="detail-meeting-datetime"></span></p>
+            <p><strong>Lokasi:</strong> <span id="detail-meeting-location"></span></p>
+            <p><strong>Topik Pembahasan:</strong></p>
+            <ul id="detail-meeting-topics"></ul>
+            <div class="meeting-photo-detail" id="detail-meeting-photo-container" style="display: none;">
+                <p><strong>Foto Meeting:</strong></p>
+                <img id="detail-meeting-photo" src="" alt="Foto Meeting">
             </div>
         </div>
     </div>
@@ -838,8 +904,7 @@
             // Initialize Firebase
             firebase.initializeApp(firebaseConfig);
             const database = firebase.database();
-            // const storage = firebase.storage(); // Uncomment if using Firebase Storage
-
+            
             // Firebase References
             const meetingsRef = database.ref('meetings');
             const attendanceRef = database.ref('attendanceData');
@@ -873,20 +938,30 @@
             const nextMonthBtn = document.getElementById('nextMonth');
             let currentCalendarDate = new Date(); // For calendar navigation
 
-            // Camera elements
-            const takePhotoBtn = document.getElementById('take-photo-btn');
+            // Camera elements (for meeting photo)
+            const takeMeetingPhotoBtn = document.getElementById('take-meeting-photo-btn');
             const cameraModal = document.getElementById('camera-modal');
-            const modalCloseBtn = document.querySelector('.modal-close-btn');
+            const modalCloseBtn = document.querySelector('#camera-modal .modal-close-btn');
             const cameraStream = document.getElementById('camera-stream');
             const photoCanvas = document.getElementById('photo-canvas');
             const photoPreview = document.getElementById('photo-preview');
             const capturePhotoBtn = document.getElementById('capture-photo-btn');
             const retakePhotoBtn = document.getElementById('retake-photo-btn');
             const savePhotoBtn = document.getElementById('save-photo-btn');
-            const photoDataInput = document.getElementById('photo-data-input');
-            const photoThumbnail = document.getElementById('photo-thumbnail');
-            const thumbnailImg = document.getElementById('thumbnail-img');
-            let mediaStream = null; // To store the camera stream
+            const meetingPhotoDisplay = document.getElementById('meeting-photo-display');
+            const meetingPhotoThumbnail = document.getElementById('meeting-photo-thumbnail');
+            let mediaStream = null;
+            let capturedMeetingPhotoData = '';
+
+            // Meeting Details Modal elements
+            const meetingDetailsModal = document.getElementById('meeting-details-modal');
+            const meetingDetailsCloseBtn = document.querySelector('#meeting-details-modal .modal-close-btn');
+            const detailMeetingTitle = document.getElementById('detail-meeting-title');
+            const detailMeetingDatetime = document.getElementById('detail-meeting-datetime');
+            const detailMeetingLocation = document.getElementById('detail-meeting-location');
+            const detailMeetingTopics = document.getElementById('detail-meeting-topics');
+            const detailMeetingPhotoContainer = document.getElementById('detail-meeting-photo-container');
+            const detailMeetingPhoto = document.getElementById('detail-meeting-photo');
 
             // --- Navigation Handler ---
             navBtns.forEach(btn => {
@@ -904,6 +979,10 @@
                     // If navigating away from attendance, stop camera if open
                     if (target !== 'attendance-section' && cameraModal.style.display === 'flex') {
                         closeCameraModal();
+                    }
+                    // If navigating to calendar, re-render it
+                    if (target === 'calendar-section') {
+                        renderCalendar(currentCalendarDate);
                     }
                 });
             });
@@ -959,7 +1038,8 @@
                     date: date,
                     location: location,
                     topics: topics,
-                    createdAt: new Date().toISOString()
+                    createdAt: new Date().toISOString(),
+                    meetingPhoto: '' // Initialize with empty photo
                 };
                 
                 const newMeetingRef = meetingsRef.push();
@@ -989,14 +1069,9 @@
                 
                 const name = document.getElementById('name').value;
                 const department = document.getElementById('department').value;
-                const photoData = photoDataInput.value; // Get base64 photo data
 
                 if (!name || !department) {
                     showToast('Harap isi semua field', 'error');
-                    return;
-                }
-                if (!photoData) {
-                    showToast('Harap ambil foto absensi terlebih dahulu!', 'error');
                     return;
                 }
                 
@@ -1022,8 +1097,7 @@
                     department: department,
                     timestamp: now.toISOString(),
                     time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-                    status: isOnTime ? 'present' : 'late',
-                    photo: photoData // Store base64 photo data
+                    status: isOnTime ? 'present' : 'late'
                 };
                 
                 // Push to Firebase
@@ -1034,8 +1108,6 @@
                     .then(() => {
                         showToast(`Terima kasih ${name}, absensi berhasil dicatat!`, 'success');
                         attendanceForm.reset();
-                        photoDataInput.value = ''; // Clear photo data
-                        photoThumbnail.style.display = 'none'; // Hide thumbnail
                     })
                     .catch(error => {
                         showToast('Gagal mencatat absensi: ' + error.message, 'error');
@@ -1061,9 +1133,12 @@
                     updateAttendanceList();
                     updateStats();
                     meetingStartTimeDisplay.textContent = '';
+                    takeMeetingPhotoBtn.disabled = true; // Disable photo button
+                    meetingPhotoDisplay.style.display = 'none'; // Hide photo display
                     return;
                 } else {
                     meetingSelectGroup.style.display = 'block';
+                    takeMeetingPhotoBtn.disabled = false; // Enable photo button
                 }
                 
                 activeMeetings.forEach(meeting => {
@@ -1079,16 +1154,8 @@
                 meetingSelect.removeEventListener('change', handleMeetingSelectChange);
                 meetingSelect.addEventListener('change', handleMeetingSelectChange);
 
-                if (currentMeetingId && currentMeetingId !== "") {
-                    const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
-                    if (selectedMeeting) {
-                        meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
-                    } else {
-                        meetingStartTimeDisplay.textContent = '';
-                    }
-                } else {
-                    meetingStartTimeDisplay.textContent = '';
-                }
+                // Update meeting photo display and start time
+                updateMeetingPhotoDisplay();
             }
 
             function handleMeetingSelectChange() {
@@ -1096,16 +1163,30 @@
                 localStorage.setItem('currentMeetingId', currentMeetingId);
                 updateAttendanceList();
                 updateStats();
+                updateMeetingPhotoDisplay(); // Update meeting photo display
+            }
 
+            function updateMeetingPhotoDisplay() {
                 if (currentMeetingId && currentMeetingId !== "") {
                     const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
                     if (selectedMeeting) {
                         meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
+                        if (selectedMeeting.meetingPhoto) {
+                            meetingPhotoThumbnail.src = selectedMeeting.meetingPhoto;
+                            meetingPhotoDisplay.style.display = 'block';
+                        } else {
+                            meetingPhotoThumbnail.src = '';
+                            meetingPhotoDisplay.style.display = 'none';
+                        }
                     } else {
                         meetingStartTimeDisplay.textContent = '';
+                        meetingPhotoThumbnail.src = '';
+                        meetingPhotoDisplay.style.display = 'none';
                     }
                 } else {
                     meetingStartTimeDisplay.textContent = '';
+                    meetingPhotoThumbnail.src = '';
+                    meetingPhotoDisplay.style.display = 'none';
                 }
             }
             
@@ -1120,17 +1201,13 @@
                     `;
                     totalAttendees.textContent = `0 orang`;
                     meetingStartTimeDisplay.textContent = '';
+                    updateMeetingPhotoDisplay(); // Ensure photo display is updated
                     return;
                 }
                 
                 attendanceList.innerHTML = '';
                 
-                const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
-                if (selectedMeeting) {
-                    meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
-                } else {
-                    meetingStartTimeDisplay.textContent = '';
-                }
+                updateMeetingPhotoDisplay(); // Ensure photo display is updated
 
                 currentAttendance.forEach(item => {
                     const attendanceItem = document.createElement('div');
@@ -1170,16 +1247,12 @@
                     const meetingAttendance = attendanceData.filter(item => item.meetingId == meeting.id);
                     const onTimeCount = meetingAttendance.filter(item => item.status === 'present').length;
                     
-                    // Find attendance records for this meeting that have photos
-                    const photosForMeeting = meetingAttendance.filter(item => item.photo);
                     let photoHtml = '';
-                    if (photosForMeeting.length > 0) {
-                        // Display the first photo as a thumbnail, or iterate for multiple
+                    if (meeting.meetingPhoto) { // Check for meetingPhoto property
                         photoHtml = `
                             <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Foto Absensi:</p>
-                                <img src="${photosForMeeting[0].photo}" alt="Foto Absensi" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
-                                <!-- You can add more photos or a gallery here -->
+                                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Foto Meeting:</p>
+                                <img src="${meeting.meetingPhoto}" alt="Foto Meeting" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px;">
                             </div>
                         `;
                     }
@@ -1215,7 +1288,7 @@
                                 <span>${meeting.topics.length} Topik</span>
                             </div>
                         </div>
-                        ${photoHtml} <!-- Insert photo HTML here -->
+                        ${photoHtml}
                     `;
                     
                     meetingsList.appendChild(meetingItem);
@@ -1293,7 +1366,8 @@
                             "Strategi pemasaran produk baru",
                             "Evaluasi tim dan kebutuhan SDM"
                         ],
-                        createdAt: new Date().toISOString()
+                        createdAt: new Date().toISOString(),
+                        meetingPhoto: ''
                     },
                     {
                         title: "Briefing Proyek Phoenix",
@@ -1305,7 +1379,8 @@
                             "Timeline dan milestone",
                             "Risiko dan mitigasi"
                         ],
-                        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+                        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
+                        meetingPhoto: ''
                     }
                 ];
                 
@@ -1316,8 +1391,7 @@
                         department: "engineering",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(),
                         time: "09:15",
-                        status: "present",
-                        photo: "" // Placeholder for photo
+                        status: "present"
                     },
                     {
                         meetingId: null,
@@ -1325,8 +1399,7 @@
                         department: "marketing",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(),
                         time: "09:45",
-                        status: "late",
-                        photo: "" // Placeholder for photo
+                        status: "late"
                     },
                     {
                         meetingId: null,
@@ -1334,8 +1407,7 @@
                         department: "design",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(),
                         time: "09:20",
-                        status: "present",
-                        photo: "" // Placeholder for photo
+                        status: "present"
                     }
                 ];
                 
@@ -1382,9 +1454,6 @@
                 const daysInMonth = new Date(year, month + 1, 0).getDate();
                 const today = new Date();
 
-                // Get meeting dates for the current month
-                const meetingDates = meetings.map(m => new Date(m.date).toDateString());
-
                 // Fill empty days before the first day of the month
                 for (let i = 0; i < firstDayOfMonth; i++) {
                     const emptyDay = document.createElement('div');
@@ -1399,18 +1468,31 @@
                     dayElement.textContent = day;
 
                     const currentDay = new Date(year, month, day);
+                    currentDay.setHours(0, 0, 0, 0); // Normalize to start of day for comparison
 
                     if (currentDay.toDateString() === today.toDateString()) {
                         dayElement.classList.add('current-day');
                     }
 
-                    if (meetingDates.includes(currentDay.toDateString())) {
+                    // Find meetings for this specific day
+                    const meetingsOnThisDay = meetings.filter(m => {
+                        const meetingDate = new Date(m.date);
+                        meetingDate.setHours(0, 0, 0, 0); // Normalize to start of day
+                        return meetingDate.getTime() === currentDay.getTime();
+                    });
+
+                    if (meetingsOnThisDay.length > 0) {
                         dayElement.classList.add('has-meeting');
-                        // Optional: Add tooltip or click event to show meeting details
-                        dayElement.title = meetings
-                            .filter(m => new Date(m.date).toDateString() === currentDay.toDateString())
+                        dayElement.title = meetingsOnThisDay
                             .map(m => `${formatTime(m.date)} - ${m.title}`)
                             .join('\n');
+                        dayElement.dataset.meetings = JSON.stringify(meetingsOnThisDay.map(m => m.id)); // Store meeting IDs
+                        dayElement.addEventListener('click', () => showMeetingDetails(meetingsOnThisDay));
+                    } else if (!dayElement.classList.contains('empty')) {
+                        // If no meetings, but not an empty day, still allow click for future use or just ignore
+                        dayElement.addEventListener('click', () => {
+                            showToast(`Tidak ada meeting terjadwal pada tanggal ${day}.`, 'info');
+                        });
                     }
 
                     calendarGrid.appendChild(dayElement);
@@ -1430,14 +1512,14 @@
             // Initial calendar render
             renderCalendar(currentCalendarDate);
 
-            // --- Camera Logic ---
-            takePhotoBtn.addEventListener('click', openCameraModal);
+            // --- Camera Logic (for Meeting Photo) ---
+            takeMeetingPhotoBtn.addEventListener('click', openCameraModal);
             modalCloseBtn.addEventListener('click', closeCameraModal);
             capturePhotoBtn.addEventListener('click', capturePhoto);
             retakePhotoBtn.addEventListener('click', retakePhoto);
-            savePhotoBtn.addEventListener('click', savePhoto);
+            savePhotoBtn.addEventListener('click', saveMeetingPhoto);
 
-            // Close modal if clicked outside content
+            // Close camera modal if clicked outside content
             cameraModal.addEventListener('click', (e) => {
                 if (e.target === cameraModal) {
                     closeCameraModal();
@@ -1445,14 +1527,18 @@
             });
 
             async function openCameraModal() {
+                if (!currentMeetingId || currentMeetingId === "") {
+                    showToast('Pilih meeting terlebih dahulu untuk mengambil foto.', 'error');
+                    return;
+                }
+
                 cameraModal.style.display = 'flex';
                 photoPreview.style.display = 'none';
                 cameraStream.style.display = 'block';
                 capturePhotoBtn.style.display = 'inline-flex';
                 retakePhotoBtn.style.display = 'none';
                 savePhotoBtn.style.display = 'none';
-                photoDataInput.value = ''; // Clear any previous photo data
-                thumbnailImg.src = ''; // Clear thumbnail
+                capturedMeetingPhotoData = ''; // Clear any previous photo data
 
                 try {
                     mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Prefer rear camera
@@ -1487,6 +1573,7 @@
                 capturePhotoBtn.style.display = 'none';
                 retakePhotoBtn.style.display = 'inline-flex';
                 savePhotoBtn.style.display = 'inline-flex';
+                capturedMeetingPhotoData = dataURL; // Store captured photo
             }
 
             function retakePhoto() {
@@ -1495,17 +1582,66 @@
                 capturePhotoBtn.style.display = 'inline-flex';
                 retakePhotoBtn.style.display = 'none';
                 savePhotoBtn.style.display = 'none';
-                photoDataInput.value = ''; // Clear photo data
-                thumbnailImg.src = ''; // Clear thumbnail
+                capturedMeetingPhotoData = ''; // Clear photo data
             }
 
-            function savePhoto() {
-                const dataURL = photoPreview.src;
-                photoDataInput.value = dataURL; // Store base64 data in hidden input
-                thumbnailImg.src = dataURL; // Show thumbnail
-                photoThumbnail.style.display = 'block';
-                closeCameraModal();
-                showToast('Foto absensi berhasil diambil!', 'success');
+            function saveMeetingPhoto() {
+                if (!capturedMeetingPhotoData) {
+                    showToast('Tidak ada foto yang diambil.', 'error');
+                    return;
+                }
+
+                // Update the meeting object in Firebase with the photo data
+                meetingsRef.child(currentMeetingId).update({
+                    meetingPhoto: capturedMeetingPhotoData
+                })
+                .then(() => {
+                    showToast('Foto meeting berhasil disimpan!', 'success');
+                    closeCameraModal();
+                    // The meetingsRef.on('value') listener will automatically update the UI
+                })
+                .catch(error => {
+                    showToast('Gagal menyimpan foto meeting: ' + error.message, 'error');
+                });
+            }
+
+            // --- Meeting Details Modal Logic ---
+            meetingDetailsCloseBtn.addEventListener('click', closeMeetingDetailsModal);
+            meetingDetailsModal.addEventListener('click', (e) => {
+                if (e.target === meetingDetailsModal) {
+                    closeMeetingDetailsModal();
+                }
+            });
+
+            function showMeetingDetails(meetingsOnDay) {
+                // For simplicity, if multiple meetings on a day, show details of the first one.
+                // You could extend this to show a list of meetings and let the user pick one.
+                const meeting = meetingsOnDay[0]; 
+
+                detailMeetingTitle.textContent = meeting.title;
+                detailMeetingDatetime.textContent = formatDateTime(meeting.date);
+                detailMeetingLocation.textContent = meeting.location;
+
+                detailMeetingTopics.innerHTML = '';
+                meeting.topics.forEach(topic => {
+                    const li = document.createElement('li');
+                    li.textContent = topic;
+                    detailMeetingTopics.appendChild(li);
+                });
+
+                if (meeting.meetingPhoto) {
+                    detailMeetingPhoto.src = meeting.meetingPhoto;
+                    detailMeetingPhotoContainer.style.display = 'block';
+                } else {
+                    detailMeetingPhoto.src = '';
+                    detailMeetingPhotoContainer.style.display = 'none';
+                }
+
+                meetingDetailsModal.style.display = 'flex';
+            }
+
+            function closeMeetingDetailsModal() {
+                meetingDetailsModal.style.display = 'none';
             }
         });
     </script>
