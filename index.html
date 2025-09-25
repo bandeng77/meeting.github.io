@@ -321,7 +321,7 @@
         /* Stats section */
         .stats {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(2, 1fr); /* Changed from 3 to 2 columns */
             gap: 1rem;
             margin-top: 2rem;
         }
@@ -524,7 +524,7 @@
                                     <option value="marketing">Marketing</option>
                                     <option value="engineering">Engineering</option>
                                     <option value="design">Design</option>
-                                    <option value="finance">Finance</option>
+                                    <option value="finance">Finance</m>
                                     <option value="hr">HR</option>
                                     <option value="other">Lainnya</option>
                                 </select>
@@ -543,6 +543,7 @@
                         <h2 class="card-title">
                             <i class="fas fa-list-alt"></i>
                             <span>Daftar Hadir</span>
+                            <span id="meeting-start-time" style="font-size: 1rem; color: var(--text-light); margin-left: 10px;"></span>
                             <span id="total-attendees" class="status-badge status-present">0 orang</span>
                         </h2>
                         
@@ -561,10 +562,11 @@
                                 <div class="stat-value" id="ontime-count">0</div>
                                 <div class="stat-label">Tepat Waktu</div>
                             </div>
-                            <div class="stat-card">
+                            <!-- Departemen Count Dihilangkan -->
+                            <!-- <div class="stat-card">
                                 <div class="stat-value" id="departments-count">0</div>
                                 <div class="stat-label">Departemen</div>
-                            </div>
+                            </div> -->
                         </div>
                     </div>
                 </div>
@@ -660,16 +662,16 @@
             // DOM elements
             const navBtns = document.querySelectorAll('.nav-btn');
             const contentSections = document.querySelectorAll('.content-section');
-            const meetingSelectGroup = document.getElementById('meeting-select-group'); // New: reference to the form-group for meeting select
+            const meetingSelectGroup = document.getElementById('meeting-select-group');
             const meetingSelect = document.getElementById('meeting');
             const meetingForm = document.getElementById('meeting-form');
             const attendanceForm = document.getElementById('attendance-form');
             const attendanceList = document.getElementById('attendance-list');
             const meetingsList = document.getElementById('meetings-list');
             const totalAttendees = document.getElementById('total-attendees');
+            const meetingStartTimeDisplay = document.getElementById('meeting-start-time'); // New: Element to display meeting start time
             const totalCount = document.getElementById('total-count');
             const ontimeCount = document.getElementById('ontime-count');
-            const departmentsCount = document.getElementById('departments-count');
             const toast = document.getElementById('toast');
             const toastIcon = document.getElementById('toast-icon');
             const toastMessage = document.getElementById('toast-message');
@@ -773,10 +775,9 @@
                 }
                 
                 const name = document.getElementById('name').value;
-                // const email = document.getElementById('email').value; // Dihilangkan
                 const department = document.getElementById('department').value;
                 
-                if (!name || !department) { // Validasi email dihapus
+                if (!name || !department) {
                     showToast('Harap isi semua field', 'error');
                     return;
                 }
@@ -801,7 +802,6 @@
                 const newAttendance = {
                     meetingId: currentMeetingId,
                     name: name,
-                    // email: email, // Dihilangkan dari objek
                     department: department,
                     timestamp: now.toISOString(),
                     time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
@@ -841,6 +841,7 @@
                     localStorage.setItem('currentMeetingId', currentMeetingId);
                     updateAttendanceList(); // Clear attendance list
                     updateStats(); // Clear stats
+                    meetingStartTimeDisplay.textContent = ''; // Clear meeting start time display
                     return;
                 } else {
                     meetingSelectGroup.style.display = 'block'; // Tampilkan kembali form-group jika ada meeting aktif
@@ -859,6 +860,18 @@
                 // Update current meeting if selection changes
                 meetingSelect.removeEventListener('change', handleMeetingSelectChange); // Remove old listener to prevent duplicates
                 meetingSelect.addEventListener('change', handleMeetingSelectChange);
+
+                // Set initial meeting start time display if a meeting is selected
+                if (currentMeetingId && currentMeetingId !== "") {
+                    const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
+                    if (selectedMeeting) {
+                        meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
+                    } else {
+                        meetingStartTimeDisplay.textContent = '';
+                    }
+                } else {
+                    meetingStartTimeDisplay.textContent = '';
+                }
             }
 
             function handleMeetingSelectChange() {
@@ -866,6 +879,18 @@
                 localStorage.setItem('currentMeetingId', currentMeetingId);
                 updateAttendanceList();
                 updateStats();
+
+                // Update meeting start time display based on new selection
+                if (currentMeetingId && currentMeetingId !== "") {
+                    const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
+                    if (selectedMeeting) {
+                        meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
+                    } else {
+                        meetingStartTimeDisplay.textContent = '';
+                    }
+                } else {
+                    meetingStartTimeDisplay.textContent = '';
+                }
             }
             
             // Function to update attendance list
@@ -879,18 +904,27 @@
                         </div>
                     `;
                     totalAttendees.textContent = `0 orang`;
+                    meetingStartTimeDisplay.textContent = ''; // Clear meeting start time display
                     return;
                 }
                 
                 attendanceList.innerHTML = '';
                 
+                // Find the selected meeting to get its start time
+                const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
+                if (selectedMeeting) {
+                    meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
+                } else {
+                    meetingStartTimeDisplay.textContent = '';
+                }
+
                 currentAttendance.forEach(item => {
                     const attendanceItem = document.createElement('div');
                     attendanceItem.className = 'attendance-item';
                     attendanceItem.innerHTML = `
                         <div class="attendee-info">
                             <span class="attendee-name">${item.name}</span>
-                            <span class="attendee-time">${item.time}</span> <!-- Departemen Dihilangkan -->
+                            <span class="attendee-time">${item.time}</span>
                         </div>
                         <span class="status-badge status-${item.status}">
                             ${item.status === 'present' ? 'Tepat Waktu' : 'Terlambat'}
@@ -970,8 +1004,7 @@
                 const onTimeAttendees = currentAttendance.filter(item => item.status === 'present').length;
                 ontimeCount.textContent = onTimeAttendees;
                 
-                const departments = new Set(currentAttendance.map(item => item.department));
-                departmentsCount.textContent = departments.size;
+                // departmentsCount.textContent = departments.size; // Dihilangkan
             }
             
             // Function to show toast notification
@@ -1001,6 +1034,15 @@
                     day: 'numeric',
                     month: 'long',
                     year: 'numeric'
+                });
+            }
+
+            // Helper function to format time (HH:MM)
+            function formatTime(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleTimeString('id-ID', {
+                    hour: '2-digit',
+                    minute: '2-digit'
                 });
             }
             
@@ -1049,7 +1091,6 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Budi Santoso",
-                        // email: "budi@example.com", // Dihilangkan
                         department: "engineering",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(), // 5 days ago + 15 min
                         time: "09:15",
@@ -1058,7 +1099,6 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Sari Indah",
-                        // email: "sari@example.com", // Dihilangkan
                         department: "marketing",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(), // 5 days ago + 45 min
                         time: "09:45",
@@ -1067,7 +1107,6 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Ahmad Fauzi",
-                        // email: "ahmad@example.com", // Dihilangkan
                         department: "design",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(), // 5 days ago + 20 min
                         time: "09:20",
