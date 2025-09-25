@@ -1,623 +1,1097 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Meeting Scheduler Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MeetCheck - Absensi Meeting</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <style>
+        /* Variabel CSS untuk tema */
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --secondary: #f97316;
+            --accent: #10b981;
+            --background: #faf7f5;
+            --card-bg: #ffffff;
+            --text: #1f2937;
+            --text-light: #6b7280;
+            --border: #e5e7eb;
+            --shadow: rgba(0, 0, 0, 0.1);
+        }
 
-  <!-- Firebase SDK -->
-  <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.3.0/firebase-database-compat.js"></script>
-  <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyBWD1l0RXGWMG7hFc9uGsjlZkOW_0Job2k",
-      authDomain: "meetingefk.firebaseapp.com",
-      databaseURL: "https://meetingefk-default-rtdb.asia-southeast1.firebasedatabase.app",
-      projectId: "meetingefk",
-      storageBucket: "meetingefk.firebasestorage.app",
-      messagingSenderId: "664314278395",
-      appId: "1:664314278395:web:5eac88372b15c6170b1b5e"
-    };
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-  </script>
+        /* Reset dan base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
 
-  <style>
-    .calendar-day {
-      transition: all 0.2s ease;
-    }
-    .calendar-day:hover:not(.disabled) {
-      background-color: #EFF6FF;
-      cursor: pointer;
-    }
-    .calendar-day.selected {
-      background-color: #3B82F6;
-      color: white;
-    }
-    .calendar-day.has-meetings {
-      position: relative;
-    }
-    .calendar-day.has-meetings::after {
-      content: '';
-      position: fixed; /* Changed from absolute to fixed for better positioning relative to the day element */
-      bottom: 4px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background-color: #3B82F6;
-    }
-    .calendar-day.selected.has-meetings::after {
-      background-color: white;
-    }
-    .time-slot:hover:not(.booked) {
-      background-color: #EFF6FF;
-      cursor: pointer;
-    }
-    .time-slot.selected {
-      background-color: #3B82F6;
-      color: white;
-    }
-    .meeting-card {
-      transition: all 0.2s ease;
-    }
-    .meeting-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-    }
-  </style>
+        body {
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header styles */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .logo span {
+            color: var(--secondary);
+        }
+
+        .nav {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .nav-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background-color: transparent;
+            color: var(--text);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+
+        .nav-btn.active {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .nav-btn:hover:not(.active) {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        /* Main content */
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        @media (max-width: 968px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Card styles */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px var(--shadow);
+        }
+
+        .card-title {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* Form styles */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.2);
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background-color: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+
+        /* Attendance list styles */
+        .attendance-list {
+            margin-top: 1.5rem;
+        }
+
+        .attendance-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .attendance-item:last-child {
+            border-bottom: none;
+        }
+
+        .attendee-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .attendee-name {
+            font-weight: 600;
+        }
+
+        .attendee-time {
+            font-size: 0.85rem;
+            color: var(--text-light);
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-present {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--accent);
+        }
+
+        .status-late {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+        }
+
+        /* Meeting list styles */
+        .meeting-list {
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        .meeting-item {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 4px 12px var(--shadow);
+            transition: transform 0.3s ease;
+            border-left: 4px solid var(--primary);
+        }
+
+        .meeting-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .meeting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+
+        .meeting-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .meeting-date {
+            font-size: 0.9rem;
+            color: var(--text-light);
+            background-color: rgba(79, 70, 229, 0.1);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+        .meeting-topics {
+            margin-top: 1rem;
+        }
+
+        .topic-title {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            color: var(--primary);
+        }
+
+        .topic-list {
+            padding-left: 1.5rem;
+            color: var(--text-light);
+        }
+
+        .topic-list li {
+            margin-bottom: 0.25rem;
+        }
+
+        .meeting-stats {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+        }
+
+        .stat {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+        /* Stats section */
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .stat-card {
+            background-color: var(--card-bg);
+            border-radius: 12px;
+            padding: 1.5rem;
+            text-align: center;
+            box-shadow: 0 4px 12px var(--shadow);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: var(--text-light);
+            font-size: 0.9rem;
+        }
+
+        /* Content sections */
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+            50% {
+                transform: scale(1.05);
+            }
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+            
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            
+            .card {
+                padding: 1.5rem;
+            }
+            
+            .meeting-stats {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--card-bg);
+            color: var(--text);
+            padding: 1rem 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1000;
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-success {
+            border-left: 4px solid var(--accent);
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+        }
+    </style>
 </head>
-<body class="bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <div class="flex flex-col lg:flex-row gap-8">
-      
-      <!-- Sidebar Kiri: Kalender -->
-      <div class="w-full lg:w-2/5 bg-white rounded-xl shadow-md overflow-hidden">
-        <div class="p-6">
-          
-          <!-- Logo & Identitas -->
-          <div class="flex items-center space-x-3 mb-4">
-            <img src="genetek-logo.png" alt="Genetek Logo" class="h-12 w-auto" />
-            <div>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">Meet<span>Check</span></div>
+            <div class="nav">
+                <button class="nav-btn active" data-target="attendance-section">
+                    <i class="fas fa-clipboard-check"></i> Absensi
+                </button>
+                <button class="nav-btn" data-target="new-meeting-section">
+                    <i class="fas fa-plus-circle"></i> Meeting Baru
+                </button>
+                <button class="nav-btn" data-target="meetings-section">
+                    <i class="fas fa-history"></i> Riwayat Meeting
+                </button>
             </div>
-          </div>
+        </header>
 
-          <!-- Dropdown Bulan & Tahun -->
-          <div class="flex items-center space-x-2 mb-6">
-            <select id="month-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
-            <select id="year-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm"></select>
-          </div>
-
-          <!-- Header Hari -->
-          <div id="calendar-header" class="grid grid-cols-7 gap-1 mb-2">
-            <div class="text-center text-sm font-medium text-gray-500">Sun</div>
-            <div class="text-center text-sm font-medium text-gray-500">Mon</div>
-            <div class="text-center text-sm font-medium text-gray-500">Tue</div>
-            <div class="text-center text-sm font-medium text-gray-500">Wed</div>
-            <div class="text-center text-sm font-medium text-gray-500">Thu</div>
-            <div class="text-center text-sm font-medium text-gray-500">Fri</div>
-            <div class="text-center text-sm font-medium text-gray-500">Sat</div>
-          </div>
-
-          <!-- Grid Tanggal -->
-          <div id="calendar-grid" class="grid grid-cols-7 gap-1">
-            <!-- Hari-hari akan di-generate oleh JavaScript -->
-          </div>
-
-          <!-- Tanggal Terpilih -->
-          <div id="selected-date-display" class="mt-6 p-4 bg-blue-50 rounded-lg">
-            <h3 class="text-lg font-semibold text-gray-800">Selected Date</h3>
-            <p id="selected-date" class="text-blue-600 font-medium mt-1">No date selected</p>
-          </div>
-
-          <!-- Slot Waktu -->
-          <div id="time-slots" class="mt-6">
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Meeting Room</h3>
-            <select id="meeting-room-select" class="border border-gray-300 rounded-md px-2 py-1 text-sm w-full mb-4">
-              <option value="">Select a Meeting Room</option>
-              <option value="Lantai 1">Lantai 1</option>
-              <option value="Lantai 2">Lantai 2</option>
-              <option value="Lantai 4">Lantai 4</option>
-            </select>
-
-            <h3 class="text-lg font-semibold text-gray-800 mb-4">Available Time Slots</h3>
-            <div class="grid grid-cols-3 gap-2">
-              <!-- Akan digenerate dengan JS -->
+        <!-- Attendance Section -->
+        <section id="attendance-section" class="content-section active">
+            <div class="main-content">
+                <div>
+                    <div class="card">
+                        <h2 class="card-title">
+                            <i class="fas fa-user-check"></i>
+                            <span>Absensi Baru</span>
+                        </h2>
+                        
+                        <form id="attendance-form">
+                            <div class="form-group">
+                                <label for="meeting">Pilih Meeting</label>
+                                <select id="meeting" required>
+                                    <option value="">Pilih meeting aktif</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="name">Nama Lengkap</label>
+                                <input type="text" id="name" placeholder="Masukkan nama Anda" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" placeholder="email@contoh.com" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="department">Departemen</label>
+                                <select id="department" required>
+                                    <option value="">Pilih departemen</option>
+                                    <option value="marketing">Marketing</option>
+                                    <option value="engineering">Engineering</option>
+                                    <option value="design">Design</option>
+                                    <option value="finance">Finance</option>
+                                    <option value="hr">HR</option>
+                                    <option value="other">Lainnya</option>
+                                </select>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-check-circle"></i>
+                                <span>Hadir</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                
+                <div>
+                    <div class="card">
+                        <h2 class="card-title">
+                            <i class="fas fa-list-alt"></i>
+                            <span>Daftar Hadir</span>
+                            <span id="total-attendees" class="status-badge status-present">0 orang</span>
+                        </h2>
+                        
+                        <div id="attendance-list" class="attendance-list">
+                            <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
+                                Belum ada absensi yang tercatat. Jadilah yang pertama!
+                            </div>
+                        </div>
+                        
+                        <div class="stats">
+                            <div class="stat-card">
+                                <div class="stat-value" id="total-count">0</div>
+                                <div class="stat-label">Total Hadir</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="ontime-count">0</div>
+                                <div class="stat-label">Tepat Waktu</div>
+                            </div>
+                            <div class="stat-card">
+                                <div class="stat-value" id="departments-count">0</div>
+                                <div class="stat-label">Departemen</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
+        </section>
 
-        </div>
-      </div>
-
-      <!-- Sidebar Kanan: Meeting List dan Booking Form -->
-      <div class="w-full lg:w-3/5 space-y-6">
-
-        <!-- Daftar Meeting -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden">
-          <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">
-              Meetings on <span id="meetings-date">Selected Date</span>
-            </h2>
-            <div id="meetings-list" class="space-y-3">
-              <!-- Jika belum ada meeting -->
-              <div class="text-center py-8 text-gray-500">
-                <p>No meetings scheduled yet</p>
-                <p class="text-sm mt-2">Select a date to view or schedule meetings</p>
-              </div>
+        <!-- New Meeting Section -->
+        <section id="new-meeting-section" class="content-section">
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-calendar-plus"></i>
+                    <span>Buat Meeting Baru</span>
+                </h2>
+                
+                <form id="meeting-form">
+                    <div class="form-group">
+                        <label for="meeting-title">Judul Meeting</label>
+                        <input type="text" id="meeting-title" placeholder="Contoh: Rapat Perencanaan Q4" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-date">Tanggal & Waktu</label>
+                        <input type="datetime-local" id="meeting-date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-location">Lokasi</label>
+                        <input type="text" id="meeting-location" placeholder="Contoh: Ruang Rapat Utama" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="meeting-topics">Topik Pembahasan (pisahkan dengan enter)</label>
+                        <textarea id="meeting-topics" placeholder="Masukkan topik-topik yang akan dibahas..." required></textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i>
+                        <span>Buat Meeting</span>
+                    </button>
+                </form>
             </div>
-          </div>
-        </div>
+        </section>
 
-        <!-- Form Booking -->
-        <div class="bg-white rounded-xl shadow-md overflow-hidden">
-          <div class="p-6">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">Schedule New Meeting</h2>
-            <form id="booking-form">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Meeting Title</label>
-                  <input type="text" id="title" name="title" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <!-- Meetings History Section -->
+        <section id="meetings-section" class="content-section">
+            <div class="card">
+                <h2 class="card-title">
+                    <i class="fas fa-history"></i>
+                    <span>Riwayat Meeting</span>
+                </h2>
+                
+                <div id="meetings-list" class="meeting-list">
+                    <!-- Meeting items will be added here dynamically -->
+                    <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
+                        Belum ada meeting yang tercatat. Buat meeting pertama Anda!
+                    </div>
                 </div>
-                <div>
-                  <label for="participants" class="block text-sm font-medium text-gray-700 mb-1">Participants</label>
-                  <input type="text" id="participants" name="participants" placeholder="Emails, comma separated" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <!-- START: Tambahan untuk Organizer -->
-                <div>
-                  <label for="organizer-name" class="block text-sm font-medium text-gray-700 mb-1">Organizer Name</label>
-                  <input type="text" id="organizer-name" name="organizerName" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="organizer-email" class="block text-sm font-medium text-gray-700 mb-1">Organizer Email</label>
-                  <input type="email" id="organizer-email" name="organizerEmail" required class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <!-- END: Tambahan untuk Organizer -->
-                <div>
-                  <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                  <input type="text" id="date" name="date" readonly class="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div>
-                  <label for="time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
-                  <input type="text" id="time" name="time" readonly class="w-full px-3 py-2 border border-gray-300 bg-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
-                </div>
-                <div class="md:col-span-2">
-                  <label for="description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea id="description" name="description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-                </div>
-              </div>
-              <button type="submit" class="mt-6 w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition duration-150 ease-in-out">
-                Schedule Meeting
-              </button>
-            </form>
-          </div>
-        </div>
-      </div>
+            </div>
+        </section>
     </div>
-  </div>
-</body>
-  <script>
-    // Variabel global
-    let currentMonth = new Date().getMonth();
-    let currentYear = new Date().getFullYear();
-    let selectedDate = null;
-    let selectedTime = null;
-    let selectedMeetingRoom = null; // Variabel baru untuk ruang meeting yang dipilih
-    let meetingsData = {};
 
-    const calendarGrid = document.getElementById('calendar-grid');
-    const selectedDateDisplay = document.getElementById('selected-date');
-    const meetingsDateDisplay = document.getElementById('meetings-date');
-    const meetingsList = document.getElementById('meetings-list');
-    const bookingForm = document.getElementById('booking-form');
-    const bookingDateInput = document.getElementById('date');
-    const bookingTimeInput = document.getElementById('time');
-    const monthSelect = document.getElementById('month-select');
-    const yearSelect = document.getElementById('year-select');
-    const meetingRoomSelect = document.getElementById('meeting-room-select'); // Dapatkan elemen dropdown baru
-
-    // Data ketersediaan waktu per ruangan (contoh, Anda bisa menyesuaikannya)
-    const availableTimesByRoom = {
-      'Lantai 1': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'],
-      'Lantai 2': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00'],
-      'Lantai 4': ['09:00', '10:00', '11:00', '13:00', '14:00', '15:00', '16:00']
-    };
-
-    function formatDate(date) {
-      const year = date.getFullYear();
-      const month = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
-    }
-
-    function createDayElement(day, isDisabled, hasMeetings = false, isSelected = false, isToday = false) {
-      const dayElement = document.createElement('div');
-      dayElement.className = 'calendar-day py-2 text-center rounded-md';
-      if (isDisabled) {
-        dayElement.classList.add('text-gray-300', 'disabled');
-      } else {
-        dayElement.classList.add('text-gray-800');
-        if (isToday) dayElement.classList.add('font-bold', 'border', 'border-blue-500');
-        if (hasMeetings) dayElement.classList.add('has-meetings');
-        if (isSelected) dayElement.classList.add('selected', 'text-white');
-        dayElement.addEventListener('click', () => {
-          const date = new Date(currentYear, currentMonth, day);
-          selectDate(date, formatDate(date));
-        });
-      }
-      dayElement.textContent = day;
-      return dayElement;
-    }
-
-    function renderCalendar(month, year) {
-      calendarGrid.innerHTML = '';
-      const firstDay = new Date(year, month, 1);
-      const daysInMonth = new Date(year, month + 1, 0).getDate();
-      const startDay = firstDay.getDay();
-
-      const prevMonthDays = new Date(year, month, 0).getDate();
-      for (let i = 0; i < startDay; i++) {
-        calendarGrid.appendChild(createDayElement(prevMonthDays - startDay + i + 1, true));
-      }
-
-      for (let i = 1; i <= daysInMonth; i++) {
-        const date = new Date(year, month, i);
-        const dateString = formatDate(date);
-        const hasMeetings = meetingsData[dateString]?.length > 0;
-        const isSelected = selectedDate && date.toDateString() === selectedDate.toDateString();
-        const isToday = date.toDateString() === new Date().toDateString();
-        calendarGrid.appendChild(createDayElement(i, false, hasMeetings, isSelected, isToday));
-      }
-
-      const totalCells = startDay + daysInMonth;
-      const extra = totalCells <= 35 ? 35 - totalCells : 42 - totalCells;
-      for (let i = 1; i <= extra; i++) {
-        calendarGrid.appendChild(createDayElement(i, true));
-      }
-    }
-
-    function updateTimeSlots() {
-      const container = document.querySelector('#time-slots .grid');
-      container.innerHTML = '';
-      if (!selectedDate || !selectedMeetingRoom) { // Periksa juga selectedMeetingRoom
-        container.innerHTML = `<div class="col-span-3 text-center text-gray-500">Select a meeting room and date to see available slots.</div>`;
-        return;
-      }
-
-      const dateStr = formatDate(selectedDate);
-      // Filter meetings for the selected room and date
-      const bookedTimes = meetingsData[dateStr]
-        ?.filter(m => m.meetingRoom === selectedMeetingRoom) // Filter berdasarkan ruang meeting
-        .map(m => m.time) || [];
-
-      const timesForSelectedRoom = availableTimesByRoom[selectedMeetingRoom] || [];
-
-      if (timesForSelectedRoom.length === 0) {
-        container.innerHTML = `<div class="col-span-3 text-center text-gray-500">No available times for this room.</div>`;
-        return;
-      }
-
-      timesForSelectedRoom.forEach(time => {
-        const slot = document.createElement('div');
-        const isBooked = bookedTimes.includes(time);
-        slot.className = `time-slot py-2 px-3 text-center rounded-md border ${isBooked ? 'bg-gray-100 text-gray-400 border-gray-200 booked' : 'border-gray-200'}`;
-        slot.textContent = time;
-        if (!isBooked) {
-          if (selectedTime === time) {
-            slot.classList.add('selected', 'text-white', 'border-blue-500');
-          }
-          slot.addEventListener('click', () => {
-            document.querySelectorAll('.time-slot').forEach(el => el.classList.remove('selected', 'text-white', 'border-blue-500'));
-            slot.classList.add('selected', 'text-white', 'border-blue-500');
-            selectedTime = time;
-            bookingTimeInput.value = time;
-          });
-        }
-        container.appendChild(slot);
-      });
-    }
-
-    function updateMeetingsList(dateString) {
-      meetingsList.innerHTML = '';
-      // Filter meetings for the selected date
-      const meetingsOnSelectedDate = meetingsData[dateString] || [];
-
-      if (meetingsOnSelectedDate.length === 0) {
-        meetingsList.innerHTML = `<div class="text-center py-8 text-gray-500">
-          <p>No meetings scheduled for this date</p>
-          <p class="text-sm mt-2">Select a time slot and meeting room below to schedule a meeting</p>
-        </div>`;
-        return;
-      }
-
-      meetingsOnSelectedDate.forEach(meeting => {
-        const el = document.createElement('div');
-        el.className = 'meeting-card p-4 border border-gray-200 rounded-lg';
-        el.innerHTML = `
-  <div class="flex justify-between items-start">
-    <div>
-      <h3 class="font-semibold text-gray-800">${meeting.title}</h3>
-      <p class="text-sm text-gray-500 mt-1">${meeting.time} - ${meeting.meetingRoom}</p> <!-- Tampilkan ruang meeting -->
+    <div id="toast" class="toast">
+        <i id="toast-icon" class="fas fa-check-circle"></i>
+        <span id="toast-message"></span>
     </div>
-    <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">Scheduled</span>
-  </div>
-  <p class="text-sm text-gray-600 mt-2">${meeting.description}</p>
-  <div class="mt-3">
-    <h4 class="text-xs font-medium text-gray-500 uppercase tracking-wider">Participants</h4>
-    <p class="text-xs mt-1">${meeting.participants.join(', ')}</p>
-  </div>
-  <div class="mt-3 text-right">
-  <button class="download-meeting-ics text-sm text-blue-600 hover:underline"
-  data-meeting-id="${meeting.id}" data-date="${meeting.date}">
-  Download .ics
-    </button>
-          </div>`;
-        meetingsList.appendChild(el);
-      });
-    }
 
-    function selectDate(date, dateStr) {
-      selectedDate = date;
-      selectedTime = null; // Reset selected time when date changes
-      selectedDateDisplay.textContent = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      meetingsDateDisplay.textContent = date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
-      bookingDateInput.value = dateStr;
-      bookingTimeInput.value = '';
-      renderCalendar(currentMonth, currentYear);
-      updateMeetingsList(dateStr);
-      updateTimeSlots(); // Panggil updateTimeSlots setelah memilih tanggal
-    }
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Firebase Configuration
+            const firebaseConfig = {
+                apiKey: "AIzaSyC8LlcI_ccRGieFNjlVFLfEr2c4PBg6J70",
+                authDomain: "logbook-e6ab3.firebaseapp.com",
+                databaseURL: "https://logbook-e6ab3-default-rtdb.asia-southeast1.firebasedatabase.app",
+                projectId: "logbook-e6ab3",
+                storageBucket: "logbook-e6ab3.firebasestorage.app",
+                messagingSenderId: "484546392348",
+                appId: "1:484546392348:web:861616b680427c158ecad9"
+            };
 
-    async function fetchMeetings() {
-      const snapshot = await db.ref('meetings').once('value');
-      const data = snapshot.val();
-      meetingsData = {};
-      if (data) {
-        // Convert object of objects to array of objects, and assign IDs
-        Object.keys(data).forEach(key => {
-            const meeting = { ...data[key], firebaseId: key }; // Store Firebase key as firebaseId
-            if (!meetingsData[meeting.date]) meetingsData[meeting.date] = [];
-            meetingsData[meeting.date].push(meeting);
-        });
-      }
-      renderCalendar(currentMonth, currentYear);
-      if (selectedDate) {
-        const dateStr = formatDate(selectedDate);
-        updateMeetingsList(dateStr);
-        updateTimeSlots();
-      }
-    }
+            // Initialize Firebase
+            firebase.initializeApp(firebaseConfig);
+            const database = firebase.database();
 
-    function populateMonthYearDropdown() {
-      const monthNames = [...Array(12)].map((_, i) =>
-        new Date(0, i).toLocaleString('default', { month: 'long' })
-      );
-      monthNames.forEach((month, i) => {
-        const opt = document.createElement('option');
-        opt.value = i;
-        opt.textContent = month;
-        monthSelect.appendChild(opt);
-      });
+            // Firebase References
+            const meetingsRef = database.ref('meetings');
+            const attendanceRef = database.ref('attendanceData');
+            
+            // Local data (will be synced with Firebase)
+            let meetings = [];
+            let attendanceData = [];
+            let currentMeetingId = localStorage.getItem('currentMeetingId'); // Still use localStorage for current meeting selection
 
-      const startYear = new Date().getFullYear();
-      for (let y = startYear; y <= startYear + 1; y++) {
-        const opt = document.createElement('option');
-        opt.value = y;
-        opt.textContent = y;
-        yearSelect.appendChild(opt);
-      }
+            // DOM elements
+            const navBtns = document.querySelectorAll('.nav-btn');
+            const contentSections = document.querySelectorAll('.content-section');
+            const meetingSelect = document.getElementById('meeting');
+            const meetingForm = document.getElementById('meeting-form');
+            const attendanceForm = document.getElementById('attendance-form');
+            const attendanceList = document.getElementById('attendance-list');
+            const meetingsList = document.getElementById('meetings-list');
+            const totalAttendees = document.getElementById('total-attendees');
+            const totalCount = document.getElementById('total-count');
+            const ontimeCount = document.getElementById('ontime-count');
+            const departmentsCount = document.getElementById('departments-count');
+            const toast = document.getElementById('toast');
+            const toastIcon = document.getElementById('toast-icon');
+            const toastMessage = document.getElementById('toast-message');
+            
+            // Navigation handler
+            navBtns.forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const target = this.dataset.target;
+                    
+                    // Update active button
+                    navBtns.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show target section
+                    contentSections.forEach(section => {
+                        section.classList.remove('active');
+                    });
+                    document.getElementById(target).classList.add('active');
+                });
+            });
+            
+            // Firebase Data Listeners
+            meetingsRef.on('value', (snapshot) => {
+                meetings = [];
+                snapshot.forEach((childSnapshot) => {
+                    meetings.push(childSnapshot.val());
+                });
+                meetings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by latest creation
+                updateMeetingSelect();
+                updateMeetingsList();
+                updateStats(); // Update stats in case current meeting data changed
+            });
 
-      monthSelect.value = currentMonth;
-      yearSelect.value = currentYear;
-    }
+            attendanceRef.on('value', (snapshot) => {
+                attendanceData = [];
+                snapshot.forEach((childSnapshot) => {
+                    attendanceData.push(childSnapshot.val());
+                });
+                attendanceData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by latest timestamp
+                updateAttendanceList();
+                updateStats();
+            });
 
-    bookingForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!selectedDate || !selectedTime || !selectedMeetingRoom) { // Periksa juga selectedMeetingRoom
-        alert('Please select a date, time, and meeting room');
-        return;
-      }
+            // Add sample data if Firebase is empty (only runs once on initial load if no data)
+            meetingsRef.once('value', (snapshot) => {
+                if (!snapshot.exists()) {
+                    addSampleData();
+                }
+            });
+            
+            // Meeting form submission handler
+            meetingForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const title = document.getElementById('meeting-title').value;
+                const date = document.getElementById('meeting-date').value;
+                const location = document.getElementById('meeting-location').value;
+                const topicsText = document.getElementById('meeting-topics').value;
+                
+                if (!title || !date || !location || !topicsText) {
+                    showToast('Harap isi semua field', 'error');
+                    return;
+                }
+                
+                // Parse topics
+                const topics = topicsText.split('\n').filter(topic => topic.trim() !== '');
+                
+                // Create new meeting object
+                const newMeeting = {
+                    title: title,
+                    date: date,
+                    location: location,
+                    topics: topics,
+                    createdAt: new Date().toISOString()
+                };
+                
+                // Push to Firebase
+                const newMeetingRef = meetingsRef.push();
+                newMeeting.id = newMeetingRef.key; // Set the ID to Firebase's generated key
+                
+                newMeetingRef.set(newMeeting)
+                    .then(() => {
+                        currentMeetingId = newMeeting.id;
+                        localStorage.setItem('currentMeetingId', currentMeetingId);
+                        showToast(`Meeting "${title}" berhasil dibuat!`, 'success');
+                        meetingForm.reset();
+                        document.querySelector('[data-target="attendance-section"]').click();
+                    })
+                    .catch(error => {
+                        showToast('Gagal membuat meeting: ' + error.message, 'error');
+                    });
+            });
+            
+            // Attendance form submission handler
+            attendanceForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                if (!currentMeetingId || currentMeetingId === "") {
+                    showToast('Pilih meeting terlebih dahulu', 'error');
+                    return;
+                }
+                
+                const name = document.getElementById('name').value;
+                const email = document.getElementById('email').value;
+                const department = document.getElementById('department').value;
+                
+                if (!name || !email || !department) {
+                    showToast('Harap isi semua field', 'error');
+                    return;
+                }
+                
+                // Create new attendance record
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                
+                const meeting = meetings.find(m => m.id == currentMeetingId);
+                if (!meeting) {
+                    showToast('Meeting tidak ditemukan.', 'error');
+                    return;
+                }
 
-      const title = document.getElementById('title').value;
-      const participants = document.getElementById('participants').value
-        .split(',').map(p => p.trim()).filter(p => p);
-      const description = document.getElementById('description').value;
-      const dateString = formatDate(selectedDate);
+                const meetingDate = new Date(meeting.date);
+                const meetingTime = meetingDate.getHours() * 60 + meetingDate.getMinutes();
+                const currentTime = hours * 60 + minutes;
+                
+                const isOnTime = currentTime <= meetingTime + 15; // 15 minutes grace period
+                
+                const newAttendance = {
+                    meetingId: currentMeetingId,
+                    name: name,
+                    email: email,
+                    department: department,
+                    timestamp: now.toISOString(),
+                    time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
+                    status: isOnTime ? 'present' : 'late'
+                };
+                
+                // Push to Firebase
+                const newAttendanceRef = attendanceRef.push();
+                newAttendance.id = newAttendanceRef.key; // Set the ID to Firebase's generated key
 
-      // Cek apakah slot waktu sudah dipesan untuk ruangan dan tanggal yang sama
-      const isAlreadyBooked = meetingsData[dateString]?.some(
-        m => m.time === selectedTime && m.meetingRoom === selectedMeetingRoom
-      );
-
-      if (isAlreadyBooked) {
-        alert(`The time slot ${selectedTime} in ${selectedMeetingRoom} is already booked for this date. Please choose another.`);
-        return;
-      }
-
-      const newMeeting = {
-        id: Date.now(), // Menggunakan Date.now() sebagai ID unik
-        title,
-        time: selectedTime,
-        participants,
-        description,
-        date: dateString,
-        meetingRoom: selectedMeetingRoom // Tambahkan ruang meeting ke data
-      };
-
-      try {
-        await db.ref('meetings').push(newMeeting);
-        alert('Meeting scheduled successfully!');
-      } catch (error) {
-        console.error("Error scheduling meeting:", error);
-        alert("Failed to schedule meeting. Please try again.");
-      }
-      
-      bookingForm.reset();
-      selectedTime = null;
-      bookingTimeInput.value = '';
-      // Reset meeting room selection after successful booking
-      meetingRoomSelect.value = '';
-      selectedMeetingRoom = null;
-      await fetchMeetings(); // Refresh data dan UI
-    });
-
-    monthSelect.addEventListener('change', () => {
-      currentMonth = parseInt(monthSelect.value);
-      renderCalendar(currentMonth, currentYear);
-      updateTimeSlots(); // Panggil updateTimeSlots saat bulan/tahun berubah
-    });
-
-    yearSelect.addEventListener('change', () => {
-      currentYear = parseInt(yearSelect.value);
-      renderCalendar(currentMonth, currentYear);
-      updateTimeSlots(); // Panggil updateTimeSlots saat bulan/tahun berubah
-    });
-
-    // Event listener baru untuk dropdown ruang meeting
-    meetingRoomSelect.addEventListener('change', () => {
-      selectedMeetingRoom = meetingRoomSelect.value;
-      selectedTime = null; // Reset selected time when room changes
-      bookingTimeInput.value = ''; // Clear time input
-      updateTimeSlots(); // Perbarui slot waktu berdasarkan ruang meeting yang dipilih
-    });
-
-    window.addEventListener('DOMContentLoaded', () => {
-      populateMonthYearDropdown();
-      fetchMeetings();
-      const today = new Date();
-      const dateString = formatDate(today);
-      selectDate(today, dateString);
-    });
-  </script>
-  <script>
-    // --- Tambahkan ini di bagian atas script Anda, di dekat variabel global ---
-    const TIMEZONE_ID = "Asia/Jakarta"; // Sesuaikan dengan timezone Anda
-    const TIMEZONE_OFFSET = "+0700"; // Offset WIB
-
-    // Helper function untuk format tanggal/waktu sesuai iCalendar
-    function formatICSDate(date, includeTime = true, includeTz = false) {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        const hours = String(date.getHours()).padStart(2, '0');
-        const minutes = String(date.getMinutes()).padStart(2, '0');
-        const seconds = String(date.getSeconds()).padStart(2, '0');
-
-        let formatted = `${year}${month}${day}`;
-        if (includeTime) {
-            formatted += `T${hours}${minutes}${seconds}`;
-        }
-        if (includeTz) {
-            formatted = `;TZID="${TIMEZONE_ID}":${formatted}`;
-        } else {
-            formatted += 'Z'; // UTC
-        }
-        return formatted;
-    }
-
-    // Event listener download .ics per-meeting (PASTIKAN DILUAR fungsi submit!)
-    document.addEventListener('click', function (e) {
-        if (e.target && e.target.classList.contains('download-meeting-ics')) {
-            const dateStr = e.target.dataset.date;
-            const meetingId = e.target.dataset.meetingId; // Ini adalah ID yang Anda berikan saat membuat meeting (Date.now())
-
-            const meetings = meetingsData[dateStr];
-            if (!meetings || meetings.length === 0) {
-                alert('No meetings found on this date.');
-                return;
+                newAttendanceRef.set(newAttendance)
+                    .then(() => {
+                        showToast(`Terima kasih ${name}, absensi berhasil dicatat!`, 'success');
+                        attendanceForm.reset();
+                    })
+                    .catch(error => {
+                        showToast('Gagal mencatat absensi: ' + error.message, 'error');
+                    });
+            });
+            
+            // Function to update meeting select dropdown
+            function updateMeetingSelect() {
+                meetingSelect.innerHTML = '<option value="">Pilih meeting aktif</option>';
+                
+                const activeMeetings = meetings.filter(meeting => {
+                    const meetingDate = new Date(meeting.date);
+                    return meetingDate > new Date(); // Only future meetings
+                });
+                
+                if (activeMeetings.length === 0) {
+                    meetingSelect.innerHTML = '<option value="">Tidak ada meeting aktif</option>';
+                    currentMeetingId = ""; // Clear current meeting if none active
+                    localStorage.setItem('currentMeetingId', currentMeetingId);
+                    updateAttendanceList(); // Clear attendance list
+                    updateStats(); // Clear stats
+                    return;
+                }
+                
+                activeMeetings.forEach(meeting => {
+                    const option = document.createElement('option');
+                    option.value = meeting.id;
+                    option.textContent = `${meeting.title} - ${formatDate(meeting.date)}`;
+                    if (meeting.id == currentMeetingId) {
+                        option.selected = true;
+                    }
+                    meetingSelect.appendChild(option);
+                });
+                
+                // Update current meeting if selection changes
+                meetingSelect.removeEventListener('change', handleMeetingSelectChange); // Remove old listener to prevent duplicates
+                meetingSelect.addEventListener('change', handleMeetingSelectChange);
             }
 
-            // Cari meeting berdasarkan ID yang disimpan (Date.now())
-            const meeting = meetings.find(m => String(m.id) === meetingId);
-            if (!meeting) {
-                alert('Meeting not found.');
-                return;
+            function handleMeetingSelectChange() {
+                currentMeetingId = this.value;
+                localStorage.setItem('currentMeetingId', currentMeetingId);
+                updateAttendanceList();
+                updateStats();
             }
+            
+            // Function to update attendance list
+            function updateAttendanceList() {
+                const currentAttendance = attendanceData.filter(item => item.meetingId == currentMeetingId);
+                
+                if (currentAttendance.length === 0) {
+                    attendanceList.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
+                            Belum ada absensi yang tercatat. Jadilah yang pertama!
+                        </div>
+                    `;
+                    totalAttendees.textContent = `0 orang`;
+                    return;
+                }
+                
+                attendanceList.innerHTML = '';
+                
+                currentAttendance.forEach(item => {
+                    const attendanceItem = document.createElement('div');
+                    attendanceItem.className = 'attendance-item';
+                    attendanceItem.innerHTML = `
+                        <div class="attendee-info">
+                            <span class="attendee-name">${item.name}</span>
+                            <span class="attendee-time">${item.time} • ${item.department}</span>
+                        </div>
+                        <span class="status-badge status-${item.status}">
+                            ${item.status === 'present' ? 'Tepat Waktu' : 'Terlambat'}
+                        </span>
+                    `;
+                    
+                    attendanceList.appendChild(attendanceItem);
+                });
+                
+                totalAttendees.textContent = `${currentAttendance.length} orang`;
+            }
+            
+            // Function to update meetings list
+            function updateMeetingsList() {
+                if (meetings.length === 0) {
+                    meetingsList.innerHTML = `
+                        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
+                            Belum ada meeting yang tercatat. Buat meeting pertama Anda!
+                        </div>
+                    `;
+                    return;
+                }
+                
+                meetingsList.innerHTML = '';
+                
+                meetings.forEach(meeting => {
+                    const meetingItem = document.createElement('div');
+                    meetingItem.className = 'meeting-item';
+                    
+                    // Count attendees for this meeting
+                    const meetingAttendance = attendanceData.filter(item => item.meetingId == meeting.id);
+                    const onTimeCount = meetingAttendance.filter(item => item.status === 'present').length;
+                    
+                    meetingItem.innerHTML = `
+                        <div class="meeting-header">
+                            <div class="meeting-title">${meeting.title}</div>
+                            <div class="meeting-date">${formatDateTime(meeting.date)}</div>
+                        </div>
+                        
+                        <div class="meeting-location">
+                            <i class="fas fa-map-marker-alt"></i> ${meeting.location}
+                        </div>
+                        
+                        <div class="meeting-topics">
+                            <div class="topic-title">Topik Pembahasan:</div>
+                            <ul class="topic-list">
+                                ${meeting.topics.map(topic => `<li>${topic}</li>`).join('')}
+                            </ul>
+                        </div>
+                        
+                        <div class="meeting-stats">
+                            <div class="stat">
+                                <i class="fas fa-users"></i>
+                                <span>${meetingAttendance.length} Peserta</span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-clock"></i>
+                                <span>${onTimeCount} Tepat Waktu</span>
+                            </div>
+                            <div class="stat">
+                                <i class="fas fa-check-circle"></i>
+                                <span>${meeting.topics.length} Topik</span>
+                            </div>
+                        </div>
+                    `;
+                    
+                    meetingsList.appendChild(meetingItem);
+                });
+            }
+            
+            // Function to update statistics
+            function updateStats() {
+                const currentAttendance = attendanceData.filter(item => item.meetingId == currentMeetingId);
+                
+                totalCount.textContent = currentAttendance.length;
+                
+                const onTimeAttendees = currentAttendance.filter(item => item.status === 'present').length;
+                ontimeCount.textContent = onTimeAttendees;
+                
+                const departments = new Set(currentAttendance.map(item => item.department));
+                departmentsCount.textContent = departments.size;
+            }
+            
+            // Function to show toast notification
+            function showToast(message, type = 'success') {
+                toastMessage.textContent = message;
+                
+                if (type === 'success') {
+                    toast.className = 'toast toast-success';
+                    toastIcon.className = 'fas fa-check-circle';
+                } else {
+                    toast.className = 'toast toast-error';
+                    toastIcon.className = 'fas fa-exclamation-circle';
+                }
+                
+                toast.classList.add('show');
+                
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 3000);
+            }
+            
+            // Helper function to format date
+            function formatDate(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('id-ID', {
+                    weekday: 'long',
+                    day: 'numeric',
+                    month: 'long',
+                    year: 'numeric'
+                });
+            }
+            
+            // Helper function to format date and time
+            function formatDateTime(dateString) {
+                const date = new Date(dateString);
+                return date.toLocaleDateString('id-ID', {
+                    day: 'numeric',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            }
+            
+            // Function to add sample data
+            function addSampleData() {
+                const sampleMeetings = [
+                    {
+                        title: "Rapat Perencanaan Triwulan IV",
+                        date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // 2 days from now
+                        location: "Ruang Rapat Utama",
+                        topics: [
+                            "Review pencapaian triwulan III",
+                            "Perencanaan anggaran triwulan IV",
+                            "Strategi pemasaran produk baru",
+                            "Evaluasi tim dan kebutuhan SDM"
+                        ],
+                        createdAt: new Date().toISOString()
+                    },
+                    {
+                        title: "Briefing Proyek Phoenix",
+                        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // 5 days ago
+                        location: "Ruang Rapat Engineering",
+                        topics: [
+                            "Penjelasan scope proyek",
+                            "Pembagian tugas tim",
+                            "Timeline dan milestone",
+                            "Risiko dan mitigasi"
+                        ],
+                        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
+                    }
+                ];
+                
+                const sampleAttendance = [
+                    {
+                        meetingId: null, // Will be set after meetings are pushed
+                        name: "Budi Santoso",
+                        email: "budi@example.com",
+                        department: "engineering",
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(), // 5 days ago + 15 min
+                        time: "09:15",
+                        status: "present"
+                    },
+                    {
+                        meetingId: null, // Will be set after meetings are pushed
+                        name: "Sari Indah",
+                        email: "sari@example.com",
+                        department: "marketing",
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(), // 5 days ago + 45 min
+                        time: "09:45",
+                        status: "late"
+                    },
+                    {
+                        meetingId: null, // Will be set after meetings are pushed
+                        name: "Ahmad Fauzi",
+                        email: "ahmad@example.com",
+                        department: "design",
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(), // 5 days ago + 20 min
+                        time: "09:20",
+                        status: "present"
+                    }
+                ];
+                
+                // Push sample meetings first
+                const pushedMeetingIds = [];
+                sampleMeetings.forEach(meeting => {
+                    const newMeetingRef = meetingsRef.push();
+                    meeting.id = newMeetingRef.key;
+                    newMeetingRef.set(meeting);
+                    pushedMeetingIds.push(meeting.id);
+                });
 
-            // START: Ambil nilai organizer dari input HTML
-            const organizerName = document.getElementById('organizer-name').value;
-            const organizerEmail = document.getElementById('organizer-email').value;
-            // END: Ambil nilai organizer dari input HTML
+                // Assign meetingId to sample attendance and push
+                sampleAttendance.forEach(attendance => {
+                    // Assuming the second sample meeting (index 1) is the one for past attendance
+                    attendance.meetingId = pushedMeetingIds[1]; 
+                    const newAttendanceRef = attendanceRef.push();
+                    attendance.id = newAttendanceRef.key;
+                    newAttendanceRef.set(attendance);
+                });
 
-            const [year, month, day] = meeting.date.split('-');
-            const [hour, minute] = meeting.time.split(':');
+                // Set the current meeting to the first sample meeting (future meeting)
+                currentMeetingId = pushedMeetingIds[0];
+                localStorage.setItem('currentMeetingId', currentMeetingId);
 
-            // Buat objek Date untuk start time (lokal, karena kita akan pakai TZID)
-            const start = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), parseInt(hour), parseInt(minute));
-            const end = new Date(start.getTime() + 60 * 60 * 1000); // +1 jam durasi meeting
-
-            const now = new Date(); // Waktu saat ini untuk DTSTAMP dan LAST-MODIFIED
-
-            // Escape karakter khusus untuk SUMMARY dan DESCRIPTION
-            const escapedSummary = meeting.title.replace(/,/g, '\\,');
-            const escapedDescription = meeting.description.replace(/,/g, '\\,').replace(/\n/g, '\\n');
-
-            // Buat string ATTENDEE yang lebih lengkap
-            const attendeesICS = meeting.participants.map(p => {
-                const cn = p.split('@')[0].replace(/\./g, ' ').replace(/\b\w/g, l => l.toUpperCase()); // Contoh: galih.genetek -> Galih Genetek
-                return `ATTENDEE;CN=${cn};ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE:mailto:${p}`;
-            }).join('\n'); // Gunakan newline untuk setiap ATTENDEE
-
-            // Buat deskripsi HTML
-            const htmlDescription = `<html><body id='htmlmode'><h3>${organizerName} have invited you to a new meeting!</h3><p>Subject: ${escapedSummary}</p><p>Organizer: ${organizerName}</p><p>Location: ${meeting.meetingRoom || ''}</p><p>Time: ${start.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}</p><p>Invitees: ${meeting.participants.join(', ')}</p><br/></body></html>`;
-
-            // Buat deskripsi teks biasa
-            const textDescription = `-:::_::_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_::_:_::-\n${organizerName} have invited you to a new meeting!\n\nSubject: ${escapedSummary}\nOrganizer: "${organizerName}\n\nTime: ${start.toLocaleDateString('en-US', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} ${start.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}\n \nInvitees: ${meeting.participants.join(', ')}\n\n\n-:::_::_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_:_::_:_::-`;
-
-
-            const icsContent = `
-BEGIN:VCALENDAR
-PRODID:Carbonio-Calendar-Provider
-VERSION:2.0
-METHOD:REQUEST
-BEGIN:VTIMEZONE
-TZID:${TIMEZONE_ID}
-BEGIN:STANDARD
-DTSTART:16010101T000000
-TZOFFSETTO:${TIMEZONE_OFFSET}
-TZOFFSETFROM:${TIMEZONE_OFFSET}
-TZNAME:${TIMEZONE_ID.split('/')[1]}
-END:STANDARD
-END:VTIMEZONE
-BEGIN:VEVENT
-UID:${meeting.id}@genetek.co.id
-SUMMARY:${escapedSummary}
-${attendeesICS}
-ORGANIZER;CN=${organizerName}:mailto:${organizerEmail}
-DTSTART${formatICSDate(start, true, true)}
-DTEND${formatICSDate(end, true, true)}
-STATUS:CONFIRMED
-CLASS:PUBLIC
-X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
-TRANSP:OPAQUE
-LAST-MODIFIED:${formatICSDate(now, true, false)}
-DTSTAMP:${formatICSDate(now, true, false)}
-SEQUENCE:0
-DESCRIPTION:${textDescription}
-X-ALT-DESC;FMTTYPE=text/html:${htmlDescription}
-BEGIN:VALARM
-ACTION:DISPLAY
-TRIGGER;RELATED=START:-PT5M
-DESCRIPTION:Reminder
-END:VALARM
-END:VEVENT
-END:VCALENDAR
-            `.trim();
-
-            const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' });
-            const url = URL.createObjectURL(blob);
-
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `${meeting.title.replace(/\s+/g, '_')}.ics`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-        }
-    });
-  </script>
+                showToast('Data contoh berhasil ditambahkan!', 'success');
+            }
+        });
+    </script>
 </body>
 </html>
