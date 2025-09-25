@@ -499,7 +499,7 @@
                         </h2>
                         
                         <form id="attendance-form">
-                            <div class="form-group">
+                            <div class="form-group" id="meeting-select-group">
                                 <label for="meeting">Pilih Meeting</label>
                                 <select id="meeting" required>
                                     <option value="">Pilih meeting aktif</option>
@@ -511,10 +511,11 @@
                                 <input type="text" id="name" placeholder="Masukkan nama Anda" required>
                             </div>
                             
-                            <div class="form-group">
+                            <!-- Form Email Dihilangkan -->
+                            <!-- <div class="form-group">
                                 <label for="email">Email</label>
                                 <input type="email" id="email" placeholder="email@contoh.com" required>
-                            </div>
+                            </div> -->
                             
                             <div class="form-group">
                                 <label for="department">Departemen</label>
@@ -659,6 +660,7 @@
             // DOM elements
             const navBtns = document.querySelectorAll('.nav-btn');
             const contentSections = document.querySelectorAll('.content-section');
+            const meetingSelectGroup = document.getElementById('meeting-select-group'); // New: reference to the form-group for meeting select
             const meetingSelect = document.getElementById('meeting');
             const meetingForm = document.getElementById('meeting-form');
             const attendanceForm = document.getElementById('attendance-form');
@@ -771,10 +773,10 @@
                 }
                 
                 const name = document.getElementById('name').value;
-                const email = document.getElementById('email').value;
+                // const email = document.getElementById('email').value; // Dihilangkan
                 const department = document.getElementById('department').value;
                 
-                if (!name || !email || !department) {
+                if (!name || !department) { // Validasi email dihapus
                     showToast('Harap isi semua field', 'error');
                     return;
                 }
@@ -799,7 +801,7 @@
                 const newAttendance = {
                     meetingId: currentMeetingId,
                     name: name,
-                    email: email,
+                    // email: email, // Dihilangkan dari objek
                     department: department,
                     timestamp: now.toISOString(),
                     time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
@@ -824,18 +826,24 @@
             function updateMeetingSelect() {
                 meetingSelect.innerHTML = '<option value="">Pilih meeting aktif</option>';
                 
+                const now = new Date();
                 const activeMeetings = meetings.filter(meeting => {
                     const meetingDate = new Date(meeting.date);
-                    return meetingDate > new Date(); // Only future meetings
+                    // Meeting dianggap aktif jika belum lewat 2 jam dari waktu meeting
+                    const twoHoursAfterMeeting = new Date(meetingDate.getTime() + (2 * 60 * 60 * 1000));
+                    return now < twoHoursAfterMeeting;
                 });
                 
                 if (activeMeetings.length === 0) {
                     meetingSelect.innerHTML = '<option value="">Tidak ada meeting aktif</option>';
+                    meetingSelectGroup.style.display = 'none'; // Sembunyikan form-group
                     currentMeetingId = ""; // Clear current meeting if none active
                     localStorage.setItem('currentMeetingId', currentMeetingId);
                     updateAttendanceList(); // Clear attendance list
                     updateStats(); // Clear stats
                     return;
+                } else {
+                    meetingSelectGroup.style.display = 'block'; // Tampilkan kembali form-group jika ada meeting aktif
                 }
                 
                 activeMeetings.forEach(meeting => {
@@ -882,7 +890,7 @@
                     attendanceItem.innerHTML = `
                         <div class="attendee-info">
                             <span class="attendee-name">${item.name}</span>
-                            <span class="attendee-time">${item.time} • ${item.department}</span>
+                            <span class="attendee-time">${item.time}</span> <!-- Departemen Dihilangkan -->
                         </div>
                         <span class="status-badge status-${item.status}">
                             ${item.status === 'present' ? 'Tepat Waktu' : 'Terlambat'}
@@ -1041,7 +1049,7 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Budi Santoso",
-                        email: "budi@example.com",
+                        // email: "budi@example.com", // Dihilangkan
                         department: "engineering",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(), // 5 days ago + 15 min
                         time: "09:15",
@@ -1050,7 +1058,7 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Sari Indah",
-                        email: "sari@example.com",
+                        // email: "sari@example.com", // Dihilangkan
                         department: "marketing",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(), // 5 days ago + 45 min
                         time: "09:45",
@@ -1059,7 +1067,7 @@
                     {
                         meetingId: null, // Will be set after meetings are pushed
                         name: "Ahmad Fauzi",
-                        email: "ahmad@example.com",
+                        // email: "ahmad@example.com", // Dihilangkan
                         department: "design",
                         timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(), // 5 days ago + 20 min
                         time: "09:20",
