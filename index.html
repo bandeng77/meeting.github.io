@@ -8,6 +8,8 @@
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+    <!-- Optional: Firebase Storage SDK for future photo upload -->
+    <!-- <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script> -->
     <style>
         /* Variabel CSS untuk tema */
         :root {
@@ -93,7 +95,7 @@
         /* Main content */
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 2fr; /* Adjusted for calendar */
             gap: 2rem;
         }
 
@@ -469,6 +471,154 @@
         .toast-error {
             border-left: 4px solid #ef4444;
         }
+
+        /* Calendar styles */
+        .calendar-container {
+            background-color: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 25px var(--shadow);
+            padding: 2rem;
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease-out;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .calendar-header button {
+            background: none;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            color: var(--primary);
+        }
+
+        .calendar-header h3 {
+            font-size: 1.5rem;
+            color: var(--text);
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 5px;
+            text-align: center;
+        }
+
+        .calendar-day-name {
+            font-weight: 600;
+            color: var(--text-light);
+            padding: 8px 0;
+        }
+
+        .calendar-day {
+            padding: 10px 0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            position: relative;
+        }
+
+        .calendar-day:hover:not(.empty):not(.has-meeting) {
+            background-color: rgba(79, 70, 229, 0.1);
+        }
+
+        .calendar-day.empty {
+            color: var(--border);
+            cursor: default;
+        }
+
+        .calendar-day.current-day {
+            background-color: var(--primary);
+            color: white;
+            font-weight: 700;
+        }
+
+        .calendar-day.has-meeting {
+            background-color: var(--accent);
+            color: white;
+            font-weight: 700;
+            box-shadow: 0 2px 5px rgba(16, 185, 129, 0.3);
+        }
+
+        .calendar-day.has-meeting:hover {
+            background-color: var(--accent);
+            opacity: 0.9;
+        }
+
+        /* Camera Modal Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed; /* Stay in place */
+            z-index: 1001; /* Sit on top */
+            left: 0;
+            top: 0;
+            width: 100%; /* Full width */
+            height: 100%; /* Full height */
+            overflow: auto; /* Enable scroll if needed */
+            background-color: rgba(0,0,0,0.6); /* Black w/ opacity */
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: var(--card-bg);
+            margin: auto;
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px var(--shadow);
+            width: 90%;
+            max-width: 600px;
+            text-align: center;
+            position: relative;
+        }
+
+        .modal-close-btn {
+            color: var(--text-light);
+            position: absolute;
+            top: 15px;
+            right: 25px;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .modal-close-btn:hover,
+        .modal-close-btn:focus {
+            color: var(--text);
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #camera-stream {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            background-color: #333; /* Placeholder background */
+        }
+
+        #photo-preview {
+            width: 100%;
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            margin-top: 15px;
+            display: none; /* Hidden until photo is taken */
+            background-color: #eee; /* Placeholder background */
+        }
+
+        .camera-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+        }
     </style>
 </head>
 <body>
@@ -491,6 +641,30 @@
         <!-- Attendance Section -->
         <section id="attendance-section" class="content-section active">
             <div class="main-content">
+                <!-- Calendar Section -->
+                <div class="calendar-container">
+                    <h2 class="card-title">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Jadwal Meeting</span>
+                    </h2>
+                    <div class="calendar-header">
+                        <button id="prevMonth"><i class="fas fa-chevron-left"></i></button>
+                        <h3 id="currentMonthYear"></h3>
+                        <button id="nextMonth"><i class="fas fa-chevron-right"></i></button>
+                    </div>
+                    <div class="calendar-grid" id="calendar-grid">
+                        <!-- Days of the week -->
+                        <div class="calendar-day-name">Min</div>
+                        <div class="calendar-day-name">Sen</div>
+                        <div class="calendar-day-name">Sel</div>
+                        <div class="calendar-day-name">Rab</div>
+                        <div class="calendar-day-name">Kam</div>
+                        <div class="calendar-day-name">Jum</div>
+                        <div class="calendar-day-name">Sab</div>
+                        <!-- Calendar days will be inserted here -->
+                    </div>
+                </div>
+
                 <div>
                     <div class="card">
                         <h2 class="card-title">
@@ -511,12 +685,6 @@
                                 <input type="text" id="name" placeholder="Masukkan nama Anda" required>
                             </div>
                             
-                            <!-- Form Email Dihilangkan -->
-                            <!-- <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" placeholder="email@contoh.com" required>
-                            </div> -->
-                            
                             <div class="form-group">
                                 <label for="department">Departemen</label>
                                 <select id="department" required>
@@ -524,10 +692,22 @@
                                     <option value="marketing">Marketing</option>
                                     <option value="engineering">Engineering</option>
                                     <option value="design">Design</option>
-                                    <option value="finance">Finance</m>
+                                    <option value="finance">Finance</option>
                                     <option value="hr">HR</option>
                                     <option value="other">Lainnya</option>
                                 </select>
+                            </div>
+
+                            <div class="form-group">
+                                <button type="button" id="take-photo-btn" class="btn btn-secondary">
+                                    <i class="fas fa-camera"></i>
+                                    <span>Ambil Foto</span>
+                                </button>
+                                <input type="hidden" id="photo-data-input"> <!-- To store base64 photo data -->
+                                <div id="photo-thumbnail" style="margin-top: 10px; display: none;">
+                                    <img id="thumbnail-img" src="" alt="Foto Absensi" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                    <p style="font-size: 0.8rem; color: var(--text-light);">Foto berhasil diambil!</p>
+                                </div>
                             </div>
                             
                             <button type="submit" class="btn btn-primary">
@@ -536,9 +716,7 @@
                             </button>
                         </form>
                     </div>
-                </div>
-                
-                <div>
+
                     <div class="card">
                         <h2 class="card-title">
                             <i class="fas fa-list-alt"></i>
@@ -562,11 +740,6 @@
                                 <div class="stat-value" id="ontime-count">0</div>
                                 <div class="stat-label">Tepat Waktu</div>
                             </div>
-                            <!-- Departemen Count Dihilangkan -->
-                            <!-- <div class="stat-card">
-                                <div class="stat-value" id="departments-count">0</div>
-                                <div class="stat-label">Departemen</div>
-                            </div> -->
                         </div>
                     </div>
                 </div>
@@ -633,6 +806,22 @@
         <span id="toast-message"></span>
     </div>
 
+    <!-- Camera Modal -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close-btn">&times;</span>
+            <h2>Ambil Foto Absensi</h2>
+            <video id="camera-stream" autoplay playsinline></video>
+            <canvas id="photo-canvas" style="display: none;"></canvas> <!-- Hidden canvas for capturing -->
+            <img id="photo-preview" src="" alt="Preview Foto">
+            <div class="camera-controls">
+                <button id="capture-photo-btn" class="btn btn-primary"><i class="fas fa-camera"></i> Ambil Gambar</button>
+                <button id="retake-photo-btn" class="btn btn-secondary" style="display: none;"><i class="fas fa-redo"></i> Ambil Ulang</button>
+                <button id="save-photo-btn" class="btn btn-primary" style="display: none;"><i class="fas fa-check"></i> Gunakan Foto</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             // Firebase Configuration
@@ -649,6 +838,7 @@
             // Initialize Firebase
             firebase.initializeApp(firebaseConfig);
             const database = firebase.database();
+            // const storage = firebase.storage(); // Uncomment if using Firebase Storage
 
             // Firebase References
             const meetingsRef = database.ref('meetings');
@@ -657,7 +847,7 @@
             // Local data (will be synced with Firebase)
             let meetings = [];
             let attendanceData = [];
-            let currentMeetingId = localStorage.getItem('currentMeetingId'); // Still use localStorage for current meeting selection
+            let currentMeetingId = localStorage.getItem('currentMeetingId');
 
             // DOM elements
             const navBtns = document.querySelectorAll('.nav-btn');
@@ -669,40 +859,66 @@
             const attendanceList = document.getElementById('attendance-list');
             const meetingsList = document.getElementById('meetings-list');
             const totalAttendees = document.getElementById('total-attendees');
-            const meetingStartTimeDisplay = document.getElementById('meeting-start-time'); // New: Element to display meeting start time
+            const meetingStartTimeDisplay = document.getElementById('meeting-start-time');
             const totalCount = document.getElementById('total-count');
             const ontimeCount = document.getElementById('ontime-count');
             const toast = document.getElementById('toast');
             const toastIcon = document.getElementById('toast-icon');
             const toastMessage = document.getElementById('toast-message');
-            
-            // Navigation handler
+
+            // Calendar elements
+            const calendarGrid = document.getElementById('calendar-grid');
+            const currentMonthYear = document.getElementById('currentMonthYear');
+            const prevMonthBtn = document.getElementById('prevMonth');
+            const nextMonthBtn = document.getElementById('nextMonth');
+            let currentCalendarDate = new Date(); // For calendar navigation
+
+            // Camera elements
+            const takePhotoBtn = document.getElementById('take-photo-btn');
+            const cameraModal = document.getElementById('camera-modal');
+            const modalCloseBtn = document.querySelector('.modal-close-btn');
+            const cameraStream = document.getElementById('camera-stream');
+            const photoCanvas = document.getElementById('photo-canvas');
+            const photoPreview = document.getElementById('photo-preview');
+            const capturePhotoBtn = document.getElementById('capture-photo-btn');
+            const retakePhotoBtn = document.getElementById('retake-photo-btn');
+            const savePhotoBtn = document.getElementById('save-photo-btn');
+            const photoDataInput = document.getElementById('photo-data-input');
+            const photoThumbnail = document.getElementById('photo-thumbnail');
+            const thumbnailImg = document.getElementById('thumbnail-img');
+            let mediaStream = null; // To store the camera stream
+
+            // --- Navigation Handler ---
             navBtns.forEach(btn => {
                 btn.addEventListener('click', function() {
                     const target = this.dataset.target;
                     
-                    // Update active button
                     navBtns.forEach(b => b.classList.remove('active'));
                     this.classList.add('active');
                     
-                    // Show target section
                     contentSections.forEach(section => {
                         section.classList.remove('active');
                     });
                     document.getElementById(target).classList.add('active');
+
+                    // If navigating away from attendance, stop camera if open
+                    if (target !== 'attendance-section' && cameraModal.style.display === 'flex') {
+                        closeCameraModal();
+                    }
                 });
             });
             
-            // Firebase Data Listeners
+            // --- Firebase Data Listeners ---
             meetingsRef.on('value', (snapshot) => {
                 meetings = [];
                 snapshot.forEach((childSnapshot) => {
                     meetings.push(childSnapshot.val());
                 });
-                meetings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)); // Sort by latest creation
+                meetings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
                 updateMeetingSelect();
                 updateMeetingsList();
-                updateStats(); // Update stats in case current meeting data changed
+                updateStats();
+                renderCalendar(currentCalendarDate); // Update calendar when meetings change
             });
 
             attendanceRef.on('value', (snapshot) => {
@@ -710,7 +926,7 @@
                 snapshot.forEach((childSnapshot) => {
                     attendanceData.push(childSnapshot.val());
                 });
-                attendanceData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)); // Sort by latest timestamp
+                attendanceData.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
                 updateAttendanceList();
                 updateStats();
             });
@@ -722,7 +938,7 @@
                 }
             });
             
-            // Meeting form submission handler
+            // --- Meeting Form Submission ---
             meetingForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -736,10 +952,8 @@
                     return;
                 }
                 
-                // Parse topics
                 const topics = topicsText.split('\n').filter(topic => topic.trim() !== '');
                 
-                // Create new meeting object
                 const newMeeting = {
                     title: title,
                     date: date,
@@ -748,9 +962,8 @@
                     createdAt: new Date().toISOString()
                 };
                 
-                // Push to Firebase
                 const newMeetingRef = meetingsRef.push();
-                newMeeting.id = newMeetingRef.key; // Set the ID to Firebase's generated key
+                newMeeting.id = newMeetingRef.key;
                 
                 newMeetingRef.set(newMeeting)
                     .then(() => {
@@ -765,7 +978,7 @@
                     });
             });
             
-            // Attendance form submission handler
+            // --- Attendance Form Submission ---
             attendanceForm.addEventListener('submit', function(e) {
                 e.preventDefault();
                 
@@ -776,13 +989,17 @@
                 
                 const name = document.getElementById('name').value;
                 const department = document.getElementById('department').value;
-                
+                const photoData = photoDataInput.value; // Get base64 photo data
+
                 if (!name || !department) {
                     showToast('Harap isi semua field', 'error');
                     return;
                 }
+                if (!photoData) {
+                    showToast('Harap ambil foto absensi terlebih dahulu!', 'error');
+                    return;
+                }
                 
-                // Create new attendance record
                 const now = new Date();
                 const hours = now.getHours();
                 const minutes = now.getMinutes();
@@ -805,46 +1022,48 @@
                     department: department,
                     timestamp: now.toISOString(),
                     time: `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`,
-                    status: isOnTime ? 'present' : 'late'
+                    status: isOnTime ? 'present' : 'late',
+                    photo: photoData // Store base64 photo data
                 };
                 
                 // Push to Firebase
                 const newAttendanceRef = attendanceRef.push();
-                newAttendance.id = newAttendanceRef.key; // Set the ID to Firebase's generated key
-
+                newAttendance.id = newAttendanceRef.key;
+                
                 newAttendanceRef.set(newAttendance)
                     .then(() => {
                         showToast(`Terima kasih ${name}, absensi berhasil dicatat!`, 'success');
                         attendanceForm.reset();
+                        photoDataInput.value = ''; // Clear photo data
+                        photoThumbnail.style.display = 'none'; // Hide thumbnail
                     })
                     .catch(error => {
                         showToast('Gagal mencatat absensi: ' + error.message, 'error');
                     });
             });
             
-            // Function to update meeting select dropdown
+            // --- UI Update Functions ---
             function updateMeetingSelect() {
                 meetingSelect.innerHTML = '<option value="">Pilih meeting aktif</option>';
                 
                 const now = new Date();
                 const activeMeetings = meetings.filter(meeting => {
                     const meetingDate = new Date(meeting.date);
-                    // Meeting dianggap aktif jika belum lewat 2 jam dari waktu meeting
                     const twoHoursAfterMeeting = new Date(meetingDate.getTime() + (2 * 60 * 60 * 1000));
                     return now < twoHoursAfterMeeting;
                 });
                 
                 if (activeMeetings.length === 0) {
                     meetingSelect.innerHTML = '<option value="">Tidak ada meeting aktif</option>';
-                    meetingSelectGroup.style.display = 'none'; // Sembunyikan form-group
-                    currentMeetingId = ""; // Clear current meeting if none active
+                    meetingSelectGroup.style.display = 'none';
+                    currentMeetingId = "";
                     localStorage.setItem('currentMeetingId', currentMeetingId);
-                    updateAttendanceList(); // Clear attendance list
-                    updateStats(); // Clear stats
-                    meetingStartTimeDisplay.textContent = ''; // Clear meeting start time display
+                    updateAttendanceList();
+                    updateStats();
+                    meetingStartTimeDisplay.textContent = '';
                     return;
                 } else {
-                    meetingSelectGroup.style.display = 'block'; // Tampilkan kembali form-group jika ada meeting aktif
+                    meetingSelectGroup.style.display = 'block';
                 }
                 
                 activeMeetings.forEach(meeting => {
@@ -857,11 +1076,9 @@
                     meetingSelect.appendChild(option);
                 });
                 
-                // Update current meeting if selection changes
-                meetingSelect.removeEventListener('change', handleMeetingSelectChange); // Remove old listener to prevent duplicates
+                meetingSelect.removeEventListener('change', handleMeetingSelectChange);
                 meetingSelect.addEventListener('change', handleMeetingSelectChange);
 
-                // Set initial meeting start time display if a meeting is selected
                 if (currentMeetingId && currentMeetingId !== "") {
                     const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
                     if (selectedMeeting) {
@@ -880,7 +1097,6 @@
                 updateAttendanceList();
                 updateStats();
 
-                // Update meeting start time display based on new selection
                 if (currentMeetingId && currentMeetingId !== "") {
                     const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
                     if (selectedMeeting) {
@@ -893,7 +1109,6 @@
                 }
             }
             
-            // Function to update attendance list
             function updateAttendanceList() {
                 const currentAttendance = attendanceData.filter(item => item.meetingId == currentMeetingId);
                 
@@ -904,13 +1119,12 @@
                         </div>
                     `;
                     totalAttendees.textContent = `0 orang`;
-                    meetingStartTimeDisplay.textContent = ''; // Clear meeting start time display
+                    meetingStartTimeDisplay.textContent = '';
                     return;
                 }
                 
                 attendanceList.innerHTML = '';
                 
-                // Find the selected meeting to get its start time
                 const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
                 if (selectedMeeting) {
                     meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
@@ -937,7 +1151,6 @@
                 totalAttendees.textContent = `${currentAttendance.length} orang`;
             }
             
-            // Function to update meetings list
             function updateMeetingsList() {
                 if (meetings.length === 0) {
                     meetingsList.innerHTML = `
@@ -954,10 +1167,23 @@
                     const meetingItem = document.createElement('div');
                     meetingItem.className = 'meeting-item';
                     
-                    // Count attendees for this meeting
                     const meetingAttendance = attendanceData.filter(item => item.meetingId == meeting.id);
                     const onTimeCount = meetingAttendance.filter(item => item.status === 'present').length;
                     
+                    // Find attendance records for this meeting that have photos
+                    const photosForMeeting = meetingAttendance.filter(item => item.photo);
+                    let photoHtml = '';
+                    if (photosForMeeting.length > 0) {
+                        // Display the first photo as a thumbnail, or iterate for multiple
+                        photoHtml = `
+                            <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Foto Absensi:</p>
+                                <img src="${photosForMeeting[0].photo}" alt="Foto Absensi" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                                <!-- You can add more photos or a gallery here -->
+                            </div>
+                        `;
+                    }
+
                     meetingItem.innerHTML = `
                         <div class="meeting-header">
                             <div class="meeting-title">${meeting.title}</div>
@@ -989,13 +1215,13 @@
                                 <span>${meeting.topics.length} Topik</span>
                             </div>
                         </div>
+                        ${photoHtml} <!-- Insert photo HTML here -->
                     `;
                     
                     meetingsList.appendChild(meetingItem);
                 });
             }
             
-            // Function to update statistics
             function updateStats() {
                 const currentAttendance = attendanceData.filter(item => item.meetingId == currentMeetingId);
                 
@@ -1003,11 +1229,9 @@
                 
                 const onTimeAttendees = currentAttendance.filter(item => item.status === 'present').length;
                 ontimeCount.textContent = onTimeAttendees;
-                
-                // departmentsCount.textContent = departments.size; // Dihilangkan
             }
             
-            // Function to show toast notification
+            // --- Toast Notification ---
             function showToast(message, type = 'success') {
                 toastMessage.textContent = message;
                 
@@ -1026,7 +1250,7 @@
                 }, 3000);
             }
             
-            // Helper function to format date
+            // --- Helper Functions ---
             function formatDate(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleDateString('id-ID', {
@@ -1037,7 +1261,6 @@
                 });
             }
 
-            // Helper function to format time (HH:MM)
             function formatTime(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleTimeString('id-ID', {
@@ -1046,7 +1269,6 @@
                 });
             }
             
-            // Helper function to format date and time
             function formatDateTime(dateString) {
                 const date = new Date(dateString);
                 return date.toLocaleDateString('id-ID', {
@@ -1058,7 +1280,7 @@
                 });
             }
             
-            // Function to add sample data
+            // --- Sample Data ---
             function addSampleData() {
                 const sampleMeetings = [
                     {
@@ -1089,32 +1311,34 @@
                 
                 const sampleAttendance = [
                     {
-                        meetingId: null, // Will be set after meetings are pushed
+                        meetingId: null,
                         name: "Budi Santoso",
                         department: "engineering",
-                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(), // 5 days ago + 15 min
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 15 * 60 * 1000).toISOString(),
                         time: "09:15",
-                        status: "present"
+                        status: "present",
+                        photo: "" // Placeholder for photo
                     },
                     {
-                        meetingId: null, // Will be set after meetings are pushed
+                        meetingId: null,
                         name: "Sari Indah",
                         department: "marketing",
-                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(), // 5 days ago + 45 min
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 45 * 60 * 1000).toISOString(),
                         time: "09:45",
-                        status: "late"
+                        status: "late",
+                        photo: "" // Placeholder for photo
                     },
                     {
-                        meetingId: null, // Will be set after meetings are pushed
+                        meetingId: null,
                         name: "Ahmad Fauzi",
                         department: "design",
-                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(), // 5 days ago + 20 min
+                        timestamp: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000 + 20 * 60 * 1000).toISOString(),
                         time: "09:20",
-                        status: "present"
+                        status: "present",
+                        photo: "" // Placeholder for photo
                     }
                 ];
                 
-                // Push sample meetings first
                 const pushedMeetingIds = [];
                 sampleMeetings.forEach(meeting => {
                     const newMeetingRef = meetingsRef.push();
@@ -1123,20 +1347,165 @@
                     pushedMeetingIds.push(meeting.id);
                 });
 
-                // Assign meetingId to sample attendance and push
                 sampleAttendance.forEach(attendance => {
-                    // Assuming the second sample meeting (index 1) is the one for past attendance
                     attendance.meetingId = pushedMeetingIds[1]; 
                     const newAttendanceRef = attendanceRef.push();
                     attendance.id = newAttendanceRef.key;
                     newAttendanceRef.set(attendance);
                 });
 
-                // Set the current meeting to the first sample meeting (future meeting)
                 currentMeetingId = pushedMeetingIds[0];
                 localStorage.setItem('currentMeetingId', currentMeetingId);
 
                 showToast('Data contoh berhasil ditambahkan!', 'success');
+            }
+
+            // --- Calendar Logic ---
+            const monthNames = ["Januari", "Februari", "Maret", "April", "Mei", "Juni", "Juli", "Agustus", "September", "Oktober", "November", "Desember"];
+
+            function renderCalendar(date) {
+                const year = date.getFullYear();
+                const month = date.getMonth();
+                currentMonthYear.textContent = `${monthNames[month]} ${year}`;
+
+                calendarGrid.innerHTML = `
+                    <div class="calendar-day-name">Min</div>
+                    <div class="calendar-day-name">Sen</div>
+                    <div class="calendar-day-name">Sel</div>
+                    <div class="calendar-day-name">Rab</div>
+                    <div class="calendar-day-name">Kam</div>
+                    <div class="calendar-day-name">Jum</div>
+                    <div class="calendar-day-name">Sab</div>
+                `;
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay(); // 0 for Sunday, 1 for Monday, etc.
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const today = new Date();
+
+                // Get meeting dates for the current month
+                const meetingDates = meetings.map(m => new Date(m.date).toDateString());
+
+                // Fill empty days before the first day of the month
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    const emptyDay = document.createElement('div');
+                    emptyDay.classList.add('calendar-day', 'empty');
+                    calendarGrid.appendChild(emptyDay);
+                }
+
+                // Fill days of the month
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayElement = document.createElement('div');
+                    dayElement.classList.add('calendar-day');
+                    dayElement.textContent = day;
+
+                    const currentDay = new Date(year, month, day);
+
+                    if (currentDay.toDateString() === today.toDateString()) {
+                        dayElement.classList.add('current-day');
+                    }
+
+                    if (meetingDates.includes(currentDay.toDateString())) {
+                        dayElement.classList.add('has-meeting');
+                        // Optional: Add tooltip or click event to show meeting details
+                        dayElement.title = meetings
+                            .filter(m => new Date(m.date).toDateString() === currentDay.toDateString())
+                            .map(m => `${formatTime(m.date)} - ${m.title}`)
+                            .join('\n');
+                    }
+
+                    calendarGrid.appendChild(dayElement);
+                }
+            }
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() - 1);
+                renderCalendar(currentCalendarDate);
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentCalendarDate.setMonth(currentCalendarDate.getMonth() + 1);
+                renderCalendar(currentCalendarDate);
+            });
+
+            // Initial calendar render
+            renderCalendar(currentCalendarDate);
+
+            // --- Camera Logic ---
+            takePhotoBtn.addEventListener('click', openCameraModal);
+            modalCloseBtn.addEventListener('click', closeCameraModal);
+            capturePhotoBtn.addEventListener('click', capturePhoto);
+            retakePhotoBtn.addEventListener('click', retakePhoto);
+            savePhotoBtn.addEventListener('click', savePhoto);
+
+            // Close modal if clicked outside content
+            cameraModal.addEventListener('click', (e) => {
+                if (e.target === cameraModal) {
+                    closeCameraModal();
+                }
+            });
+
+            async function openCameraModal() {
+                cameraModal.style.display = 'flex';
+                photoPreview.style.display = 'none';
+                cameraStream.style.display = 'block';
+                capturePhotoBtn.style.display = 'inline-flex';
+                retakePhotoBtn.style.display = 'none';
+                savePhotoBtn.style.display = 'none';
+                photoDataInput.value = ''; // Clear any previous photo data
+                thumbnailImg.src = ''; // Clear thumbnail
+
+                try {
+                    mediaStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }); // Prefer rear camera
+                    cameraStream.srcObject = mediaStream;
+                } catch (err) {
+                    console.error("Error accessing camera: ", err);
+                    showToast("Gagal mengakses kamera. Pastikan Anda memberikan izin.", 'error');
+                    closeCameraModal();
+                }
+            }
+
+            function closeCameraModal() {
+                cameraModal.style.display = 'none';
+                if (mediaStream) {
+                    mediaStream.getTracks().forEach(track => track.stop()); // Stop all camera tracks
+                    mediaStream = null;
+                }
+            }
+
+            function capturePhoto() {
+                const context = photoCanvas.getContext('2d');
+                photoCanvas.width = cameraStream.videoWidth;
+                photoCanvas.height = cameraStream.videoHeight;
+                context.drawImage(cameraStream, 0, 0, photoCanvas.width, photoCanvas.height);
+                
+                const dataURL = photoCanvas.toDataURL('image/jpeg', 0.8); // Get image data as base64
+
+                photoPreview.src = dataURL;
+                photoPreview.style.display = 'block';
+                cameraStream.style.display = 'none';
+
+                capturePhotoBtn.style.display = 'none';
+                retakePhotoBtn.style.display = 'inline-flex';
+                savePhotoBtn.style.display = 'inline-flex';
+            }
+
+            function retakePhoto() {
+                photoPreview.style.display = 'none';
+                cameraStream.style.display = 'block';
+                capturePhotoBtn.style.display = 'inline-flex';
+                retakePhotoBtn.style.display = 'none';
+                savePhotoBtn.style.display = 'none';
+                photoDataInput.value = ''; // Clear photo data
+                thumbnailImg.src = ''; // Clear thumbnail
+            }
+
+            function savePhoto() {
+                const dataURL = photoPreview.src;
+                photoDataInput.value = dataURL; // Store base64 data in hidden input
+                thumbnailImg.src = dataURL; // Show thumbnail
+                photoThumbnail.style.display = 'block';
+                closeCameraModal();
+                showToast('Foto absensi berhasil diambil!', 'success');
             }
         });
     </script>
