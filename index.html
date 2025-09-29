@@ -93,7 +93,7 @@
         /* Main content */
         .main-content {
             display: grid;
-            grid-template-columns: 1fr 2fr; /* Adjusted for calendar */
+            grid-template-columns: 1fr 1fr; /* Changed to 1fr 1fr for two columns */
             gap: 2rem;
         }
 
@@ -662,6 +662,21 @@
             border-radius: 8px;
             border: 1px solid var(--border);
         }
+        .meeting-item .btn-view-details {
+            margin-top: 1rem;
+            background-color: var(--primary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+        }
+        .meeting-item .btn-view-details:hover {
+            background-color: var(--primary-light);
+        }
     </style>
 </head>
 <body>
@@ -687,83 +702,81 @@
         <!-- Attendance Section -->
         <section id="attendance-section" class="content-section active">
             <div class="main-content">
-                <!-- Calendar Section (moved to its own section) -->
-                <!-- This space can be used for other attendance-related content if needed -->
-                <div>
-                    <div class="card">
-                        <h2 class="card-title">
-                            <i class="fas fa-user-check"></i>
-                            <span>Absensi Baru</span>
-                        </h2>
+                <!-- Card Absensi Baru (Kiri) -->
+                <div class="card">
+                    <h2 class="card-title">
+                        <i class="fas fa-user-check"></i>
+                        <span>Absensi Baru</span>
+                    </h2>
+                    
+                    <form id="attendance-form">
+                        <div class="form-group" id="meeting-select-group">
+                            <label for="meeting">Pilih Meeting</label>
+                            <select id="meeting" required>
+                                <option value="">Pilih meeting aktif</option>
+                            </select>
+                        </div>
                         
-                        <form id="attendance-form">
-                            <div class="form-group" id="meeting-select-group">
-                                <label for="meeting">Pilih Meeting</label>
-                                <select id="meeting" required>
-                                    <option value="">Pilih meeting aktif</option>
-                                </select>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="name">Nama Lengkap</label>
-                                <input type="text" id="name" placeholder="Masukkan nama Anda" required>
-                            </div>
-                            
-                            <div class="form-group">
-                                <label for="department">Departemen</label>
-                                <select id="department" required>
-                                    <option value="">Pilih departemen</option>
-                                    <option value="marketing">Marketing</option>
-                                    <option value="engineering">Engineering</option>
-                                    <option value="design">Design</option>
-                                    <option value="finance">Finance</option>
-                                    <option value="hr">HR</option>
-                                    <option value="other">Lainnya</option>
-                                </select>
-                            </div>
-                            
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-check-circle"></i>
-                                <span>Hadir</span>
-                            </button>
-                        </form>
+                        <div class="form-group">
+                            <label for="name">Nama Lengkap</label>
+                            <input type="text" id="name" placeholder="Masukkan nama Anda" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="department">Departemen</label>
+                            <select id="department" required>
+                                <option value="">Pilih departemen</option>
+                                <option value="marketing">Marketing</option>
+                                <option value="engineering">Engineering</option>
+                                <option value="design">Design</option>
+                                <option value="finance">Finance</option>
+                                <option value="hr">HR</option>
+                                <option value="other">Lainnya</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-check-circle"></i>
+                            <span>Hadir</span>
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Card Daftar Hadir (Kanan) -->
+                <div class="card">
+                    <h2 class="card-title">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Daftar Hadir</span>
+                        <span id="meeting-start-time" style="font-size: 1rem; color: var(--text-light); margin-left: 10px;"></span>
+                        <span id="total-attendees" class="status-badge status-present">0 orang</span>
+                    </h2>
+                    
+                    <div id="attendance-list" class="attendance-list">
+                        <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
+                            Belum ada absensi yang tercatat. Jadilah yang pertama!
+                        </div>
                     </div>
 
-                    <div class="card">
-                        <h2 class="card-title">
-                            <i class="fas fa-list-alt"></i>
-                            <span>Daftar Hadir</span>
-                            <span id="meeting-start-time" style="font-size: 1rem; color: var(--text-light); margin-left: 10px;"></span>
-                            <span id="total-attendees" class="status-badge status-present">0 orang</span>
-                        </h2>
-                        
-                        <div id="attendance-list" class="attendance-list">
-                            <div class="empty-state" style="text-align: center; padding: 2rem; color: var(--text-light);">
-                                Belum ada absensi yang tercatat. Jadilah yang pertama!
-                            </div>
+                    <!-- Tombol Ambil Foto untuk Meeting -->
+                    <div style="margin-top: 1.5rem; text-align: center;">
+                        <button type="button" id="take-meeting-photo-btn" class="btn btn-secondary" disabled>
+                            <i class="fas fa-camera"></i>
+                            <span>Ambil Foto Meeting</span>
+                        </button>
+                        <div id="meeting-photo-display" style="display: none;">
+                            <img id="meeting-photo-thumbnail" src="" alt="Foto Meeting">
+                            <p>Foto meeting berhasil diambil!</p>
                         </div>
-
-                        <!-- Tombol Ambil Foto untuk Meeting -->
-                        <div style="margin-top: 1.5rem; text-align: center;">
-                            <button type="button" id="take-meeting-photo-btn" class="btn btn-secondary" disabled>
-                                <i class="fas fa-camera"></i>
-                                <span>Ambil Foto Meeting</span>
-                            </button>
-                            <div id="meeting-photo-display" style="display: none;">
-                                <img id="meeting-photo-thumbnail" src="" alt="Foto Meeting">
-                                <p>Foto meeting berhasil diambil!</p>
-                            </div>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat-card">
+                            <div class="stat-value" id="total-count">0</div>
+                            <div class="stat-label">Total Hadir</div>
                         </div>
-                        
-                        <div class="stats">
-                            <div class="stat-card">
-                                <div class="stat-value" id="total-count">0</div>
-                                <div class="stat-label">Total Hadir</div>
-                            </div>
-                            <div class="stat-card">
-                                <div class="stat-value" id="ontime-count">0</div>
-                                <div class="stat-label">Tepat Waktu</div>
-                            </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="ontime-count">0</div>
+                            <div class="stat-label">Tepat Waktu</div>
                         </div>
                     </div>
                 </div>
@@ -785,13 +798,39 @@
                     </div>
                     
                     <div class="form-group">
-                        <label for="meeting-date">Tanggal & Waktu</label>
-                        <input type="datetime-local" id="meeting-date" required>
+                        <label for="meeting-date-input">Tanggal</label>
+                        <input type="date" id="meeting-date-input" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meeting-start-time">Waktu Mulai</label>
+                        <select id="meeting-start-time-select" required>
+                            <option value="">Pilih Jam Mulai</option>
+                            <!-- Options will be generated by JS -->
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="meeting-duration">Durasi Meeting (jam)</label>
+                        <select id="meeting-duration" required>
+                            <option value="1">1 Jam</option>
+                            <option value="2">2 Jam</option>
+                            <option value="3">3 Jam</option>
+                            <option value="4">4 Jam</option>
+                            <option value="5">5 Jam</option>
+                            <option value="6">6 Jam</option>
+                            <option value="7">7 Jam</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
                         <label for="meeting-location">Lokasi</label>
-                        <input type="text" id="meeting-location" placeholder="Contoh: Ruang Rapat Utama" required>
+                        <select id="meeting-location" required>
+                            <option value="">Pilih Lokasi</option>
+                            <option value="Lantai 1">Lantai 1</option>
+                            <option value="Lantai 2">Lantai 2</option>
+                            <option value="Lantai 4">Lantai 4</option>
+                        </select>
                     </div>
                     
                     <div class="form-group">
@@ -879,6 +918,7 @@
             <h2 id="detail-meeting-title"></h2>
             <p><strong>Tanggal & Waktu:</strong> <span id="detail-meeting-datetime"></span></p>
             <p><strong>Lokasi:</strong> <span id="detail-meeting-location"></span></p>
+            <p><strong>Durasi:</strong> <span id="detail-meeting-duration"></span></p>
             <p><strong>Topik Pembahasan:</strong></p>
             <ul id="detail-meeting-topics"></ul>
             <div class="meeting-photo-detail" id="detail-meeting-photo-container" style="display: none;">
@@ -931,6 +971,12 @@
             const toastIcon = document.getElementById('toast-icon');
             const toastMessage = document.getElementById('toast-message');
 
+            // New Meeting Form elements
+            const meetingDateInput = document.getElementById('meeting-date-input');
+            const meetingStartTimeSelect = document.getElementById('meeting-start-time-select'); // Changed ID
+            const meetingDurationSelect = document.getElementById('meeting-duration'); // New element
+            const meetingLocationSelect = document.getElementById('meeting-location');
+
             // Calendar elements
             const calendarGrid = document.getElementById('calendar-grid');
             const currentMonthYear = document.getElementById('currentMonthYear');
@@ -959,6 +1005,7 @@
             const detailMeetingTitle = document.getElementById('detail-meeting-title');
             const detailMeetingDatetime = document.getElementById('detail-meeting-datetime');
             const detailMeetingLocation = document.getElementById('detail-meeting-location');
+            const detailMeetingDuration = document.getElementById('detail-meeting-duration'); // New element
             const detailMeetingTopics = document.getElementById('detail-meeting-topics');
             const detailMeetingPhotoContainer = document.getElementById('detail-meeting-photo-container');
             const detailMeetingPhoto = document.getElementById('detail-meeting-photo');
@@ -983,6 +1030,10 @@
                     // If navigating to calendar, re-render it
                     if (target === 'calendar-section') {
                         renderCalendar(currentCalendarDate);
+                    }
+                    // If navigating to new meeting, populate time options
+                    if (target === 'new-meeting-section') {
+                        populateMeetingStartTimeOptions(); // Changed function name
                     }
                 });
             });
@@ -1016,26 +1067,86 @@
                     addSampleData();
                 }
             });
-            
+
+            // --- New Meeting Time Options Population ---
+            function populateMeetingStartTimeOptions() { // Changed function name
+                meetingStartTimeSelect.innerHTML = '<option value="">Pilih Jam Mulai</option>';
+                for (let i = 9; i <= 16; i++) { // Max start time is 16:00 for a 1-hour meeting
+                    const hour = i.toString().padStart(2, '0');
+                    const option = document.createElement('option');
+                    option.value = `${hour}:00`;
+                    option.textContent = `${hour}:00`;
+                    meetingStartTimeSelect.appendChild(option);
+                }
+            }
+            populateMeetingStartTimeOptions(); // Initial population
+
             // --- Meeting Form Submission ---
-            meetingForm.addEventListener('submit', function(e) {
+            meetingForm.addEventListener('submit', async function(e) {
                 e.preventDefault();
                 
                 const title = document.getElementById('meeting-title').value;
-                const date = document.getElementById('meeting-date').value;
+                const dateInput = document.getElementById('meeting-date-input').value;
+                const startTimeInput = document.getElementById('meeting-start-time-select').value; // Changed ID
+                const durationInput = parseInt(document.getElementById('meeting-duration').value); // New
                 const location = document.getElementById('meeting-location').value;
                 const topicsText = document.getElementById('meeting-topics').value;
                 
-                if (!title || !date || !location || !topicsText) {
+                if (!title || !dateInput || !startTimeInput || !durationInput || !location || !topicsText) {
                     showToast('Harap isi semua field', 'error');
                     return;
+                }
+
+                const startDateTime = new Date(`${dateInput}T${startTimeInput}`);
+                const endDateTime = new Date(startDateTime.getTime() + durationInput * 60 * 60 * 1000); // Add duration in hours
+
+                // Check if end time exceeds 17:00 (or whatever your closing time is)
+                if (endDateTime.getHours() > 17 || (endDateTime.getHours() === 17 && endDateTime.getMinutes() > 0)) {
+                    showToast('Meeting tidak bisa melebihi jam 17:00.', 'error');
+                    return;
+                }
+
+                // Validate slot availability for each hour covered by the meeting
+                for (let i = 0; i < durationInput; i++) {
+                    const currentSlotStart = new Date(startDateTime.getTime() + i * 60 * 60 * 1000);
+                    const currentSlotHour = currentSlotStart.getHours();
+
+                    const isSlotTaken = meetings.some(m => {
+                        const existingMeetingStart = new Date(m.date);
+                        const existingMeetingDuration = m.duration || 1; // Default to 1 hour if not specified
+                        const existingMeetingEnd = new Date(existingMeetingStart.getTime() + existingMeetingDuration * 60 * 60 * 1000);
+
+                        // Check if dates are the same
+                        if (existingMeetingStart.toDateString() !== startDateTime.toDateString()) {
+                            return false;
+                        }
+
+                        // Check for overlap:
+                        // New meeting starts within existing meeting's time
+                        // OR New meeting ends within existing meeting's time
+                        // OR Existing meeting starts within new meeting's time
+                        const newMeetingStartMillis = startDateTime.getTime();
+                        const newMeetingEndMillis = endDateTime.getTime();
+                        const existingMeetingStartMillis = existingMeetingStart.getTime();
+                        const existingMeetingEndMillis = existingMeetingEnd.getTime();
+
+                        return m.location === location && (
+                            (newMeetingStartMillis < existingMeetingEndMillis && newMeetingEndMillis > existingMeetingStartMillis)
+                        );
+                    });
+
+                    if (isSlotTaken) {
+                        showToast(`Lokasi ${location} sudah terisi pada tanggal ${formatDate(startDateTime.toISOString())} antara jam ${formatTime(currentSlotStart.toISOString())} dan ${formatTime(new Date(currentSlotStart.getTime() + 60 * 60 * 1000).toISOString())}.`, 'error');
+                        return;
+                    }
                 }
                 
                 const topics = topicsText.split('\n').filter(topic => topic.trim() !== '');
                 
                 const newMeeting = {
                     title: title,
-                    date: date,
+                    date: startDateTime.toISOString(), // Store start time as ISO string
+                    duration: durationInput, // Store duration
                     location: location,
                     topics: topics,
                     createdAt: new Date().toISOString(),
@@ -1120,9 +1231,14 @@
                 
                 const now = new Date();
                 const activeMeetings = meetings.filter(meeting => {
-                    const meetingDate = new Date(meeting.date);
-                    const twoHoursAfterMeeting = new Date(meetingDate.getTime() + (2 * 60 * 60 * 1000));
-                    return now < twoHoursAfterMeeting;
+                    const meetingStart = new Date(meeting.date);
+                    const meetingDuration = meeting.duration || 1; // Default to 1 hour
+                    const meetingEnd = new Date(meetingStart.getTime() + meetingDuration * 60 * 60 * 1000);
+                    
+                    // A meeting is active if it's currently ongoing or starts in the future
+                    // For attendance, let's say it's active if it started within the last 2 hours
+                    const twoHoursAgo = new Date(now.getTime() - 2 * 60 * 60 * 1000);
+                    return meetingEnd > twoHoursAgo && meetingStart <= now; // Meeting ended less than 2 hours ago AND started before now
                 });
                 
                 if (activeMeetings.length === 0) {
@@ -1144,7 +1260,9 @@
                 activeMeetings.forEach(meeting => {
                     const option = document.createElement('option');
                     option.value = meeting.id;
-                    option.textContent = `${meeting.title} - ${formatDate(meeting.date)}`;
+                    const meetingStart = new Date(meeting.date);
+                    const meetingEnd = new Date(meetingStart.getTime() + (meeting.duration || 1) * 60 * 60 * 1000);
+                    option.textContent = `${meeting.title} - ${formatDate(meeting.date)} ${formatTime(meeting.date)} - ${formatTime(meetingEnd.toISOString())}`;
                     if (meeting.id == currentMeetingId) {
                         option.selected = true;
                     }
@@ -1170,7 +1288,9 @@
                 if (currentMeetingId && currentMeetingId !== "") {
                     const selectedMeeting = meetings.find(m => m.id == currentMeetingId);
                     if (selectedMeeting) {
-                        meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(selectedMeeting.date)}`;
+                        const meetingStart = new Date(selectedMeeting.date);
+                        const meetingEnd = new Date(meetingStart.getTime() + (selectedMeeting.duration || 1) * 60 * 60 * 1000);
+                        meetingStartTimeDisplay.textContent = `Mulai: ${formatTime(meetingStart.toISOString())} - Selesai: ${formatTime(meetingEnd.toISOString())}`;
                         if (selectedMeeting.meetingPhoto) {
                             meetingPhotoThumbnail.src = selectedMeeting.meetingPhoto;
                             meetingPhotoDisplay.style.display = 'block';
@@ -1247,20 +1367,14 @@
                     const meetingAttendance = attendanceData.filter(item => item.meetingId == meeting.id);
                     const onTimeCount = meetingAttendance.filter(item => item.status === 'present').length;
                     
-                    let photoHtml = '';
-                    if (meeting.meetingPhoto) { // Check for meetingPhoto property
-                        photoHtml = `
-                            <div style="margin-top: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
-                                <p style="font-weight: 600; margin-bottom: 0.5rem; color: var(--primary);">Foto Meeting:</p>
-                                <img src="${meeting.meetingPhoto}" alt="Foto Meeting" style="width: 150px; height: 100px; object-fit: cover; border-radius: 8px;">
-                            </div>
-                        `;
-                    }
+                    const meetingStart = new Date(meeting.date);
+                    const meetingDuration = meeting.duration || 1;
+                    const meetingEnd = new Date(meetingStart.getTime() + meetingDuration * 60 * 60 * 1000);
 
                     meetingItem.innerHTML = `
                         <div class="meeting-header">
                             <div class="meeting-title">${meeting.title}</div>
-                            <div class="meeting-date">${formatDateTime(meeting.date)}</div>
+                            <div class="meeting-date">${formatDateTime(meeting.date)} - ${formatTime(meetingEnd.toISOString())}</div>
                         </div>
                         
                         <div class="meeting-location">
@@ -1284,14 +1398,31 @@
                                 <span>${onTimeCount} Tepat Waktu</span>
                             </div>
                             <div class="stat">
+                                <i class="fas fa-hourglass-half"></i>
+                                <span>${meetingDuration} Jam</span>
+                            </div>
+                            <div class="stat">
                                 <i class="fas fa-check-circle"></i>
                                 <span>${meeting.topics.length} Topik</span>
                             </div>
                         </div>
-                        ${photoHtml}
+                        <button class="btn-view-details" data-meeting-id="${meeting.id}">
+                            <i class="fas fa-info-circle"></i> Lihat Detail
+                        </button>
                     `;
                     
                     meetingsList.appendChild(meetingItem);
+                });
+
+                // Add event listeners for "Lihat Detail" buttons
+                document.querySelectorAll('.btn-view-details').forEach(button => {
+                    button.addEventListener('click', (event) => {
+                        const meetingId = event.currentTarget.dataset.meetingId;
+                        const meeting = meetings.find(m => m.id === meetingId);
+                        if (meeting) {
+                            showMeetingDetails([meeting]); // Pass as array for consistency with calendar click
+                        }
+                    });
                 });
             }
             
@@ -1311,9 +1442,12 @@
                 if (type === 'success') {
                     toast.className = 'toast toast-success';
                     toastIcon.className = 'fas fa-check-circle';
-                } else {
+                } else if (type === 'error') {
                     toast.className = 'toast toast-error';
                     toastIcon.className = 'fas fa-exclamation-circle';
+                } else { // info
+                    toast.className = 'toast'; // default style
+                    toastIcon.className = 'fas fa-info-circle';
                 }
                 
                 toast.classList.add('show');
@@ -1358,8 +1492,9 @@
                 const sampleMeetings = [
                     {
                         title: "Rapat Perencanaan Triwulan IV",
-                        date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // 2 days from now
-                        location: "Ruang Rapat Utama",
+                        date: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + 'T10:00', // 2 days from now, 10:00
+                        duration: 2, // 2 hours
+                        location: "Lantai 1",
                         topics: [
                             "Review pencapaian triwulan III",
                             "Perencanaan anggaran triwulan IV",
@@ -1371,8 +1506,9 @@
                     },
                     {
                         title: "Briefing Proyek Phoenix",
-                        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 16), // 5 days ago
-                        location: "Ruang Rapat Engineering",
+                        date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10) + 'T14:00', // 5 days ago, 14:00
+                        duration: 1, // 1 hour
+                        location: "Lantai 2",
                         topics: [
                             "Penjelasan scope proyek",
                             "Pembagian tugas tim",
@@ -1484,7 +1620,11 @@
                     if (meetingsOnThisDay.length > 0) {
                         dayElement.classList.add('has-meeting');
                         dayElement.title = meetingsOnThisDay
-                            .map(m => `${formatTime(m.date)} - ${m.title}`)
+                            .map(m => {
+                                const meetingStart = new Date(m.date);
+                                const meetingEnd = new Date(meetingStart.getTime() + (m.duration || 1) * 60 * 60 * 1000);
+                                return `${formatTime(meetingStart.toISOString())} - ${formatTime(meetingEnd.toISOString())} - ${m.title} (${m.location})`;
+                            })
                             .join('\n');
                         dayElement.dataset.meetings = JSON.stringify(meetingsOnThisDay.map(m => m.id)); // Store meeting IDs
                         dayElement.addEventListener('click', () => showMeetingDetails(meetingsOnThisDay));
@@ -1614,13 +1754,17 @@
             });
 
             function showMeetingDetails(meetingsOnDay) {
-                // For simplicity, if multiple meetings on a day, show details of the first one.
-                // You could extend this to show a list of meetings and let the user pick one.
+                // If there are multiple meetings on a day, we can list them or show the first one.
+                // For now, let's show details of the first meeting in the array.
                 const meeting = meetingsOnDay[0]; 
 
                 detailMeetingTitle.textContent = meeting.title;
-                detailMeetingDatetime.textContent = formatDateTime(meeting.date);
+                const meetingStart = new Date(meeting.date);
+                const meetingDuration = meeting.duration || 1;
+                const meetingEnd = new Date(meetingStart.getTime() + meetingDuration * 60 * 60 * 1000);
+                detailMeetingDatetime.textContent = `${formatDateTime(meeting.date)} - ${formatTime(meetingEnd.toISOString())}`;
                 detailMeetingLocation.textContent = meeting.location;
+                detailMeetingDuration.textContent = `${meetingDuration} Jam`; // Display duration
 
                 detailMeetingTopics.innerHTML = '';
                 meeting.topics.forEach(topic => {
